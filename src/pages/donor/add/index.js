@@ -5,25 +5,27 @@ import { BloodGroupOptions, GenderOptions } from "@/utils/Options";
 import { addDonorAPI } from "@/Actions/Controllers/DonorController";
 import { getAllUsersAPI } from "@/Actions/Controllers/UserController";
 import { toast } from "sonner";
+import { useRouter } from "next/router";
 
 const AddUser = () => {
   const [loading, setLoading] = useState(false);
+  const router = useRouter()
   const [status, setStatus] = useState(null);
   const [users, setUsers] = useState([]);
   const [referredByName, setReferredByName] = useState("");
-
+  const { eventID, searchValue } = router.query;
 
   const [form, setForm] = useState({
-    name: "",
+    name: searchValue,
     email: "",
-    contact: "",
+    contact: searchValue,
     dob: "",
     gender: "",
     bloodGroup: "",
     weight: "",
     address: "",
     lastDonationDate: "",
-    referredBy: "", // ✅ NEW FIELD
+    referredBy: "",
   });
 
   /* =========================
@@ -69,6 +71,8 @@ const AddUser = () => {
 
       if (res.success) {
         toast.success("Donor added successfully");
+        if(eventID)
+          router.push(`/event/${eventID}/register?searchValue=${searchValue}`)
       } else {
         toast.error(res.data?.message || "Failed to add donor");
       }
@@ -78,6 +82,18 @@ const AddUser = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+  if (!router.isReady) return;
+
+  if (searchValue) {
+    setForm((prev) => ({
+      ...prev,
+      name: searchValue,
+      contact: searchValue,
+    }));
+  }
+}, [router.isReady, searchValue]);
 
   return (
     <MainLayout title="Add Donor" loading={loading} status={status}>
@@ -106,7 +122,7 @@ const AddUser = () => {
           {/* DOB */}
           <div className={styles.field}>
             <label>Date of Birth</label>
-            <input type="date" name="dob" value={form.dob} onChange={handleChange}  />
+            <input type="date" name="dob" value={form.dob} onChange={handleChange} />
           </div>
 
           {/* Gender */}
@@ -123,7 +139,7 @@ const AddUser = () => {
           {/* Blood Group */}
           <div className={styles.field}>
             <label>Blood Group</label>
-            <select name="bloodGroup" value={form.bloodGroup} onChange={handleChange} required>
+            <select name="bloodGroup" value={form.bloodGroup} onChange={handleChange} >
               <option value="">Select</option>
               {BloodGroupOptions.map((bg) => (
                 <option key={bg.value} value={bg.value}>{bg.label}</option>
@@ -134,7 +150,7 @@ const AddUser = () => {
           {/* Weight */}
           <div className={styles.field}>
             <label>Weight (kg)</label>
-            <input type="number" name="weight" value={form.weight} onChange={handleChange}  />
+            <input type="number" name="weight" value={form.weight} onChange={handleChange} />
           </div>
 
           {/* Last Donation Date */}
@@ -190,7 +206,7 @@ const AddUser = () => {
               <option value={"DIRECT"}>DIRECT</option>
               <option value={"DESK"}>DESK</option>
               <option value={"DOOR_TO_DOOR"}>DOOR_TO_DOOR</option>
-              
+
               {users.map((u) => (
                 <option
                   key={u._id}

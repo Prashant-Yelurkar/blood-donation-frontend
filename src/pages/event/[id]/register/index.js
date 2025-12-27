@@ -14,19 +14,20 @@ import { TIME_SLOTS } from "@/utils/TimeSlote";
 
 const DonorPage = () => {
     const router = useRouter();
-    const { id } = router.query;
+    const { id , searchValue} = router.query;
 
     const hasFetched = useRef(false);
 
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState(null);
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(router.query?.searchValue|| "");
     const [donors, setDonors] = useState([]);
 
     /* 🔹 Modal State */
     const [showModal, setShowModal] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState("");
+
 
     /* 🔹 Filter donors */
     const filteredDonors = donors.filter(
@@ -73,6 +74,8 @@ const DonorPage = () => {
             if (res.success) {
                 toast.success("User registered successfully");
                 setShowModal(false);
+                if(searchValue)
+                    router.push(`/event/${id}/edit`);
                 getAllDonors(); // refresh list
             } else {
                 toast.error(res.data?.message || "Registration failed");
@@ -86,7 +89,7 @@ const DonorPage = () => {
 
 
     const handleAddDonor = () => {
-        router.push(getRoute("DONOR_ADD"));
+        router.push(`${getRoute("DONOR_ADD")}?eventID=${id}&searchValue=${searchValue}`);
     };
 
     const handleDetails = (userId) => {
@@ -100,6 +103,32 @@ const DonorPage = () => {
         hasFetched.current = true;
         getAllDonors();
     }, [router.isReady]);
+
+
+    const getCurrentTimeSlot = () => {
+    const now = new Date();
+    let currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Your camp runs from 8 AM – 8 PM
+    return TIME_SLOTS.find((slot) => {
+        const [start] = slot.split("-");
+
+        let [hour, minute] = start.trim().split(":").map(Number);
+
+        // 🔥 FIX 12-hour issue: treat 1–7 as PM
+        if (hour >= 1 && hour <= 7) {
+            hour += 12;
+        }
+
+        const slotStartMinutes = hour * 60 + minute;
+        const slotEndMinutes = slotStartMinutes + 60;
+
+        return (
+            currentMinutes >= slotStartMinutes &&
+            currentMinutes < slotEndMinutes
+        );
+    }) || "";
+};
 
     return (
         <MainLayout title="Donors" loading={loading} status={status}>
@@ -168,7 +197,7 @@ const DonorPage = () => {
                                             <button
                                                 onClick={() => {
                                                     setSelectedUserId(d.id);
-                                                    setSelectedSlot("");
+                                                    setSelectedSlot(getCurrentTimeSlot());
                                                     setShowModal(true);
                                                 }}
                                                 className={styles.editBtn}

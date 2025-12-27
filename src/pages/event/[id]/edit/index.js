@@ -22,7 +22,7 @@ const EditEvent = () => {
     const { id } = router.query;
 
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState("REGISTERED");
+    const [filter, setFilter] = useState("REMAINING");
     const [timeSlotFilter, setTimeSlotFilter] = useState(""); // NEW
     const [search, setSearch] = useState("");
     const [users, setUsers] = useState([]);
@@ -42,6 +42,20 @@ const EditEvent = () => {
             (u.contact && u.contact.includes(search))
     );
 
+    const timeSlotToMinutes = (slot = "") => {
+        if (!slot) return Infinity;
+
+        // "01:00 - 02:00" → "01:00"
+        const start = slot.split("-")[0].trim();
+        let [hour, minute] = start.split(":").map(Number);
+
+        // 🔥 FIX: Treat 1–7 as PM (13–19)
+        if (hour >= 1 && hour <= 7) {
+            hour += 12;
+        }
+
+        return hour * 60 + minute;
+    };
     const getUsers = () => {
         let filteredUsers = filtered;
 
@@ -59,9 +73,29 @@ const EditEvent = () => {
                 break;
         }
 
+        const normalizeTimeSlot = (slot = "") =>
+            slot
+                .replace(/\s+/g, "")
+                .replace("–", "-")
+                .trim();
+
+
         if (timeSlotFilter) {
-            filteredUsers = filteredUsers.filter((u) => u.timeSloat === timeSlotFilter);
+            filteredUsers = filteredUsers.filter(
+                (u) =>
+                    normalizeTimeSlot(u.timeSloat) ===
+                    normalizeTimeSlot(timeSlotFilter)
+            );
         }
+        else {
+            filteredUsers = filteredUsers.sort(
+                (a, b) =>
+                    timeSlotToMinutes(a.timeSloat) -
+                    timeSlotToMinutes(b.timeSloat)
+            );
+        }
+        console.log(filteredUsers);
+
 
         return filteredUsers;
     };
@@ -120,14 +154,14 @@ const EditEvent = () => {
                 return;
             }
             if (callStatus === "ANSWERED") {
-                if (!description.trim()) {
-                    toast.error("Call description required for answered calls");
+                if (!description.trim() && !timeSlot) {
+                    toast.error("Call description or TimeSloat required for answered calls");
                     return;
                 }
-                if (!timeSlot) {
-                    toast.error("Please select a time slot for answered calls");
-                    return;
-                }
+                // if (!timeSlot) {
+                //     toast.error("Please select a time slot for answered calls");
+                //     return;
+                // }
             }
         }
 
@@ -175,7 +209,7 @@ const EditEvent = () => {
     };
 
     const handelRegister = () => {
-        router.push(`/event/${id}/register`);
+        router.push(`/event/${id}/register?searchValue=${search}`);
     };
 
     return (
@@ -269,10 +303,10 @@ const EditEvent = () => {
                                         <td>
                                             <span
                                                 className={`${styles.badge} ${u.status === "DONATED"
-                                                        ? styles.green
-                                                        : u.status === "REJECTED"
-                                                            ? styles.red
-                                                            : styles.orange
+                                                    ? styles.green
+                                                    : u.status === "REJECTED"
+                                                        ? styles.red
+                                                        : styles.orange
                                                     }`}
                                             >
                                                 {u.status}

@@ -48,7 +48,7 @@ const VolunteerPage = () => {
             }
             else
             {
-                toast.error(res.message || 'An error occurred while fetching volunteers');
+                toast.error(res.data.message || 'An error occurred while fetching volunteers');
             }
         }
         catch(error)
@@ -85,7 +85,7 @@ const VolunteerPage = () => {
                 const rf = await refractorAllVolunteersAPI(res.data.volunteers);
                 setVolunteers(rf);
             } else {
-                toast.error(res.message || 'Failed to fetch volunteers');
+                toast.error(res.data.message || 'Failed to fetch volunteers');
             }
         }
         catch (err) {
