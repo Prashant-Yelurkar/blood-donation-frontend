@@ -298,6 +298,7 @@ const EditEvent = () => {
                                 <th>Sr</th>
                                 <th>Name</th>
                                 <th>Contact</th>
+                                <th>Refer By</th>
                                 <th>Calls</th>
                                 <th>Call Time</th>
                                 {filter === "REMAINING" && <th>Call Status</th>}
@@ -331,6 +332,7 @@ const EditEvent = () => {
                                                 {u.contact}
                                             </span>
                                         </td>
+                                        <td>{u.referredBy}</td>
                                         <td>{u.totalCallMade || 0}</td>
                                         <td>{u.lastCallTime || "N/A"}</td>
                                         {filter === "REMAINING" && <td>{u.callStatus || "N/A"}</td>}
