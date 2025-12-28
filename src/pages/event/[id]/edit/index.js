@@ -19,10 +19,10 @@ const CALL_STATUSES = [
 
 const EditEvent = () => {
     const router = useRouter();
-    const { id } = router.query;
-
+    const { id ,searchValue } = router.query;
+  
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState("REMAINING");
+    const [filter, setFilter] = useState("");
     const [timeSlotFilter, setTimeSlotFilter] = useState(""); // NEW
     const [search, setSearch] = useState("");
     const [users, setUsers] = useState([]);
@@ -43,16 +43,11 @@ const EditEvent = () => {
     );
 
     const timeSlotToMinutes = (slot = "") => {
-        if (!slot) return Infinity;
+        if (!slot || slot === "ANY TIME") return Infinity;
 
-        // "01:00 - 02:00" → "01:00"
+        // "08:00 - 09:00" → "08:00"
         const start = slot.split("-")[0].trim();
-        let [hour, minute] = start.split(":").map(Number);
-
-        // 🔥 FIX: Treat 1–7 as PM (13–19)
-        if (hour >= 1 && hour <= 7) {
-            hour += 12;
-        }
+        const [hour, minute] = start.split(":").map(Number);
 
         return hour * 60 + minute;
     };
@@ -68,6 +63,9 @@ const EditEvent = () => {
                 break;
             case "REJECTED":
                 filteredUsers = filteredUsers.filter((u) => u.status === "REJECTED");
+                break;
+            case "CANCELLED":
+                filteredUsers = filteredUsers.filter((u) => u.status === "CANCELLED");
                 break;
             default:
                 break;
@@ -86,13 +84,18 @@ const EditEvent = () => {
                     normalizeTimeSlot(u.timeSloat) ===
                     normalizeTimeSlot(timeSlotFilter)
             );
-        }
-        else {
-            filteredUsers = filteredUsers.sort(
-                (a, b) =>
-                    timeSlotToMinutes(a.timeSloat) -
-                    timeSlotToMinutes(b.timeSloat)
-            );
+        } else {
+            filteredUsers = filteredUsers.sort((a, b) => {
+                const aTime = timeSlotToMinutes(a.timeSloat);
+                const bTime = timeSlotToMinutes(b.timeSloat);
+
+                // ✅ "ANY TIME" always last
+                if (aTime === Infinity && bTime === Infinity) return 0;
+                if (aTime === Infinity) return 1;
+                if (bTime === Infinity) return -1;
+
+                return aTime - bTime;
+            });
         }
         console.log(filteredUsers);
 
@@ -184,6 +187,12 @@ const EditEvent = () => {
                     status: "DONATED",
                     timeSlot,
                 };
+            }
+            else if (actionType === "CANCELLED") {
+                payload = {
+                    status: "CANCELLED",
+                    timeSlot,
+                };
             } else if (actionType === "CALL_MADE") {
                 payload = {
                     status: "CALL_MADE",
@@ -199,6 +208,8 @@ const EditEvent = () => {
                 toast.success("Updated successfully");
                 setShowModal(false);
                 getUsersData();
+                setSearch('')
+                setSelectedUser({})
             } else {
                 toast.error(res.data?.message || "Error while updating");
             }
@@ -212,6 +223,27 @@ const EditEvent = () => {
         router.push(`/event/${id}/register?searchValue=${search}`);
     };
 
+    
+    const handelUserClick =(user)=>{
+        setSelectedUser(user)
+        router.push(`/event/${id}/edit?searchValue=${user.id}`);
+        setTimeout(()=>(
+            router.push(`/donor/${user.id}`)
+        ),100)
+    }
+
+    const handleContactClick = (user) => {
+        setSearch(user.contact || user.email);
+        setSelectedUser(user); 
+        if (user.contact) {
+            window.location.href = `tel:${user.contact}`;
+        }
+    };
+
+    useEffect(()=>{
+        if(!router.isReady) return;        
+        setSelectedUser({id:searchValue})
+    },[router])
     return (
         <MainLayout title="Edit Event" loading={loading}>
             <div className={styles.container}>
@@ -241,6 +273,7 @@ const EditEvent = () => {
                         <option value="ACCEPTED">Accepted (Donated)</option>
                         <option value="REMAINING">Remaining (Pending)</option>
                         <option value="REJECTED">Rejected</option>
+                        <option value="CANCELLED">Cancelled</option>
                     </select>
 
                     <select
@@ -250,8 +283,8 @@ const EditEvent = () => {
                     >
                         <option value="">All Time Slots</option>
                         {TIME_SLOTS.map((t) => (
-                            <option key={t} value={t}>
-                                {t}
+                            <option key={t.label} value={t.label}>
+                                {t.label}
                             </option>
                         ))}
                     </select>
@@ -266,6 +299,7 @@ const EditEvent = () => {
                                 <th>Name</th>
                                 <th>Contact</th>
                                 <th>Calls</th>
+                                <th>Call Time</th>
                                 {filter === "REMAINING" && <th>Call Status</th>}
                                 {filter === "REMAINING" && <th>Last Call Note</th>}
                                 <th>Time Slot</th>
@@ -284,36 +318,42 @@ const EditEvent = () => {
                                 </tr>
                             ) : (
                                 list.map((u, i) => (
-                                    <tr key={u.id}>
+                                    <tr key={u.id}
+                                    className={u.id ==selectedUser?.id? styles.selected:{}}>
                                         <td>{i + 1}</td>
-                                        <td>{u.name}</td>
                                         <td className={styles.link}>
-                                            {u.contact ? (
-                                                <a href={`tel:${u.contact}`}>{u.contact}</a>
-                                            ) : (
-                                                <a href={`mailto:${u.email}`}>{u.email}</a>
-                                            )}
+                                            <span onClick={()=>handelUserClick(u)}>
+                                                {u.name}
+                                            </span>
+                                        </td>
+                                        <td className={styles.link}>
+                                            <span onClick={()=> handleContactClick(u)}>
+                                                {u.contact}
+                                            </span>
                                         </td>
                                         <td>{u.totalCallMade || 0}</td>
-                                        {filter === "REMAINING" && <td>{u.callStatus || "-"}</td>}
+                                        <td>{u.lastCallTime || "N/A"}</td>
+                                        {filter === "REMAINING" && <td>{u.callStatus || "N/A"}</td>}
                                         {filter === "REMAINING" && (
-                                            <td>{u.lastCallFeedback || "-"}</td>
+                                            <td>{u.lastCallFeedback || "N/A"}</td>
                                         )}
                                         <td>{u.timeSloat || "-"}</td>
                                         <td>
                                             <span
                                                 className={`${styles.badge} ${u.status === "DONATED"
-                                                    ? styles.green
-                                                    : u.status === "REJECTED"
-                                                        ? styles.red
-                                                        : styles.orange
+                                                        ? styles.green
+                                                        : u.status === "REJECTED"
+                                                            ? styles.red
+                                                            : u.status === "CANCELLED"
+                                                                ? styles.gray
+                                                                : styles.orange
                                                     }`}
                                             >
                                                 {u.status}
                                             </span>
                                         </td>
                                         {filter === "REJECTED" && <td>{u.rejectedReason}</td>}
-                                        {filter === "REMAINING" && (
+                                        {/* {filter && ( */}
                                             <td>
                                                 <button
                                                     className={styles.actionBtn}
@@ -322,7 +362,7 @@ const EditEvent = () => {
                                                     Update Status
                                                 </button>
                                             </td>
-                                        )}
+                                        {/* )} */}
                                     </tr>
                                 ))
                             )}
@@ -346,6 +386,7 @@ const EditEvent = () => {
                                 <option value="DONATED">Donated</option>
                                 <option value="REJECTED">Rejected</option>
                                 <option value="CALL_MADE">Call Made</option>
+                                <option value="CANCELLED">Cancelled</option>
                             </select>
 
                             {/* Rejection Reason */}
@@ -396,8 +437,8 @@ const EditEvent = () => {
                             >
                                 <option value="">Select Time Slot</option>
                                 {TIME_SLOTS.map((t) => (
-                                    <option key={t} value={t}>
-                                        {t}
+                                    <option key={t.label} value={t.label}>
+                                        {t.label}
                                     </option>
                                 ))}
                             </select>

@@ -3,9 +3,10 @@ import { toast } from "sonner";
 import styles from "./add.module.css";
 import MainLayout from "@/components/Layout/MainLayout";
 import { addEventAPI } from "@/Actions/Controllers/eventController";
+import { useRouter } from "next/router";
 
 const AddEvent = ({ volunteers = [] }) => {
-
+    const router = useRouter()
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null)
     const [form, setForm] = useState({
@@ -41,6 +42,7 @@ const AddEvent = ({ volunteers = [] }) => {
             if(res.success)
             {
                 toast.success(res.data.message || "Event Added Successfully!")
+                router.push('/event');
             }
             else
             {

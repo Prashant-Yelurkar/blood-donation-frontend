@@ -57,3 +57,173 @@
     font-size: 15px;
   }
 }
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.summary {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.summary h2 {
+  font-size: 22px;
+  margin-bottom: 14px;
+  color: #111827;
+}
+
+.summary ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.summary li {
+  background: #f9fafb;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.chart {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.chart h3 {
+  text-align: center;
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: #111827;
+}
+
+@media (max-width: 600px) {
+  .summary ul {
+    grid-template-columns: 1fr;
+  }
+
+  .chart h3 {
+    font-size: 15px;
+  }
+}
+
+
+.uploadBox {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.uploadBox h3 {
+  font-size: 18px;
+  color: #111827;
+}
+
+.uploadBox input[type="file"] {
+  padding: 10px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.uploadBox input[type="file"]::-webkit-file-upload-button {
+  background: #e5e7eb;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.uploadBtn {
+  align-self: flex-start;
+  background: #4f46e5;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.uploadBtn:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.uploadBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* =========================
+   Mobile Optimization
+========================= */
+
+@media (max-width: 600px) {
+  .uploadBtn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+
+.downloadBox {
+  margin-top: 40px;
+  padding: 20px;
+  border: 1px dashed #d1d5db; /* light gray border */
+  border-radius: 8px;
+  text-align: center;
+  background-color: #f9fafb; /* subtle background */
+}
+
+.downloadBox h3 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.downloadBox button {
+  padding: 10px 20px;
+  background-color: #4f46e5;
+  color: white;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.downloadBox button:hover {
+  background-color: #4338ca;
+}
+
+.downloadBox p {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}

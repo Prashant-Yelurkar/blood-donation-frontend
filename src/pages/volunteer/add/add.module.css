@@ -68,6 +68,43 @@
   background: #8f0000;
 }
 
+/* Excel upload field */
+.field input[type="file"] {
+  padding: 5px;
+  font-size: 14px;
+}
+
+.field button {
+  margin-top: 5px;
+  padding: 6px 12px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.field button:hover {
+  background: #0b7dda;
+}
+
+/* Download template button */
+.downloadButton {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #ff9800;
+  color: white;
+  border-radius: 5px;
+  text-decoration: none;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.downloadButton:hover {
+  background: #e68900;
+}
+
+
 /* Mobile */
 @media (max-width: 600px) {
   .form {
@@ -82,4 +119,67 @@
   .actions button {
     width: 100%;
   }
+}
+
+
+.uploadBox {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.uploadBox h3 {
+  font-size: 18px;
+  color: #111827;
+}
+
+.uploadBox input[type="file"] {
+  padding: 10px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.uploadBox input[type="file"]::-webkit-file-upload-button {
+  background: #e5e7eb;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.uploadBtn {
+  align-self: flex-start;
+  background: #4f46e5;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.uploadBtn:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.uploadBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.hint {
+  font-size: 12px;
+  color: #6b7280;
 }

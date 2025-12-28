@@ -1,5 +1,5 @@
 import { convertToLocalDateString } from "@/utils/DateConverter";
-import { myrouter } from "../AxiosInitializer";
+import { getFiles, myrouter, myUpload } from "../AxiosInitializer";
 
 
 const getAllEventsAPI = async (data) => await myrouter.get('/event')
@@ -14,6 +14,14 @@ const getEventUnrigsterUserAPI = async(id)=> await myrouter.get(`/event/${id}/us
 
 const registerUserForEventAPI = async(id, data) =>await myrouter.post(`/event/${id}/registerUser`, data)
 const updateUserStatus = async(id,userID, data) =>await myrouter.post(`/event/${id}/userStatus/${userID}`, data)
+
+
+const registerBulk = async(id,data)=> await myUpload.post(`/event/${id}/register-bulk`, data);
+const getEventReport = async (id) => {
+  return await myrouter.get(`/event/${id}/report`, {
+    responseType: "blob",
+  });
+};
 
 
 const getAllEventRefractor = async (data) => {
@@ -45,6 +53,8 @@ const refractorAllDonorsAPI = async (data) => {
 }
 
 export {
+    getEventReport,
+    registerBulk,
     updateUserStatus,
     getEventDetailsById,getEventUserAPI,getEventUnrigsterUserAPI,refractorAllDonorsAPI,registerUserForEventAPI,
     getAllEventsAPI, getAllEventRefractor,

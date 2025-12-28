@@ -115,11 +115,6 @@ const DonorPage = () => {
 
         let [hour, minute] = start.trim().split(":").map(Number);
 
-        // 🔥 FIX 12-hour issue: treat 1–7 as PM
-        if (hour >= 1 && hour <= 7) {
-            hour += 12;
-        }
-
         const slotStartMinutes = hour * 60 + minute;
         const slotEndMinutes = slotStartMinutes + 60;
 
@@ -226,8 +221,8 @@ const DonorPage = () => {
                         >
                             <option value="">Select Time Slot</option>
                             {TIME_SLOTS.map((slot) => (
-                                <option key={slot} value={slot}>
-                                    {slot}
+                                <option key={slot.label} value={slot.label}>
+                                    {slot.label}
                                 </option>
                             ))}
                         </select>

@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { getAllVolunteersDetailsAPI, refractorVolunteersAPI, refractrUpdateVolunteersAPI, updateVolunteerAPI } from "@/Actions/Controllers/VolunteerController";
 import { useSelector } from "react-redux";
 import { BloodGroupOptions, GenderOptions } from "@/utils/Options";
-import DeleteConfirmModal from "@/components/modal/DeleteModal";
 
 
 
@@ -35,7 +34,9 @@ const EditVolunteer = () => {
     try {
       const res = await getAllVolunteersDetailsAPI(id);
       if (res.success) {
-        const fr = await refractorVolunteersAPI(res.data.volunteer);      
+        const fr = await refractorVolunteersAPI(res.data.volunteer);  
+        console.log(fr);
+            
         setForm(fr);
       } else {
         toast.error(res.message || "Failed to fetch volunteer details");
@@ -129,13 +130,13 @@ const EditVolunteer = () => {
             </div>
 
             <div>
-              <label>Date of Birth *</label>
+              <label>Date of Birth </label>
               <input
                 name="dob"
                 type="date"
                 value={form.dob}
                 onChange={handleChange}
-                required
+       
                 disabled={!isEditable}
               />
             </div>
@@ -161,12 +162,12 @@ const EditVolunteer = () => {
             </div>
 
             <div>
-              <label>Blood Group *</label>
+              <label>Blood Group </label>
               <select
                 name="bloodGroup"
                 value={form.bloodGroup}
                 onChange={handleChange}
-                required
+           
                 disabled={!isEditable}
               >
                 <option value="">Select Blood Group</option>
@@ -196,7 +197,7 @@ const EditVolunteer = () => {
                 type="date"
                 value={form.lastDonationDate}
                 onChange={handleChange}
-                required
+               
                 disabled={!isEditable}
               />
             </div>
@@ -209,6 +210,17 @@ const EditVolunteer = () => {
               name="address"
               placeholder="Address"
               value={form.address}
+              onChange={handleChange}
+              rows={3}
+              disabled={!isEditable}
+            />
+          </div>
+           <div>
+            <label>Work Address</label>
+            <textarea
+              name="workAddress"
+              placeholder="Work Address"
+              value={form.workAddress}
               onChange={handleChange}
               rows={3}
               disabled={!isEditable}

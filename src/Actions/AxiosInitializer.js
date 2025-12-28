@@ -45,3 +45,43 @@ myrouter.interceptors.response.use(
     });
   }
 );
+
+
+
+export const myUpload = axios.create({
+  baseURL,
+  timeout: 40000,
+});
+
+myUpload.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken(); 
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+
+myUpload.interceptors.response.use(
+  (response) => {
+    return {
+      status: response.status,
+      data: response.data,
+      success: true,
+    };
+  },
+  (error) => {
+    const errResponse = error.response || {};
+    const data = errResponse.data || { message: "Something went wrong" };
+    return Promise.resolve({
+      status: errResponse.status || 500,
+      data,
+      success: data?.success || false,
+    });
+  }
+);
+
+

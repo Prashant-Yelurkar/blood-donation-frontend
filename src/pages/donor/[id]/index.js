@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import styles from "./details.module.css";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
-import {  refractrUpdateVolunteersAPI, updateVolunteerAPI } from "@/Actions/Controllers/VolunteerController";
+
 import { useSelector } from "react-redux";
 import { BloodGroupOptions, GenderOptions } from "@/utils/Options";
 import { getDonorDetailsAPI, refractorDonorAPI, refractrUpdateDonorAPI, updateDonorAPI } from "@/Actions/Controllers/DonorController";
@@ -131,13 +131,13 @@ const EditVolunteer = () => {
             </div>
 
             <div>
-              <label>Date of Birth *</label>
+              <label>Date of Birth </label>
               <input
                 name="dob"
                 type="date"
                 value={form.dob}
                 onChange={handleChange}
-                required
+       
                 disabled={!isEditable}
               />
             </div>
@@ -168,7 +168,7 @@ const EditVolunteer = () => {
                 name="bloodGroup"
                 value={form.bloodGroup}
                 onChange={handleChange}
-                required
+       
                 disabled={!isEditable}
               >
                 <option value="">Select Blood Group</option>
@@ -198,7 +198,7 @@ const EditVolunteer = () => {
                 type="date"
                 value={form.lastDonationDate}
                 onChange={handleChange}
-                required
+           
                 disabled={!isEditable}
               />
             </div>
@@ -216,11 +216,22 @@ const EditVolunteer = () => {
               disabled={!isEditable}
             />
           </div>
+           <div>
+            <label>Work Address</label>
+            <textarea
+              name="workAddress"
+              placeholder="Address"
+              value={form.workAddress}
+              onChange={handleChange}
+              rows={3}
+              disabled={!isEditable}
+            />
+          </div>
 
           {isEditable && (
             <div className={styles.actions}>
               <button type="submit" className={styles.submitBtn}>
-                Update Volunteer
+                Update Donor
               </button>
               <button
                 type="button"

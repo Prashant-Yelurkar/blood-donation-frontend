@@ -15,7 +15,6 @@ const VolunteerPage = () => {
         name: '',
     })
 
-
     const isVerified = useSelector((state) => state.auth.isVerified);
     const hasFetched = useRef(false);
     const [loading, setLoading] = useState(true);
