@@ -109,21 +109,26 @@ const DonorPage = () => {
     const now = new Date();
     let currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // Your camp runs from 8 AM – 8 PM
-    return TIME_SLOTS.find((slot) => {
-        const [start] = slot.split("-");
+    // // Your camp runs from 8 AM – 8 PM
+    // return TIME_SLOTS.find((slot) => {
+    //     const [start] = slot.split("-");
 
-        let [hour, minute] = start.trim().split(":").map(Number);
+    //     let [hour, minute] = start.trim().split(":").map(Number);
 
-        const slotStartMinutes = hour * 60 + minute;
-        const slotEndMinutes = slotStartMinutes + 60;
+    //     const slotStartMinutes = hour * 60 + minute;
+    //     const slotEndMinutes = slotStartMinutes + 60;
 
-        return (
-            currentMinutes >= slotStartMinutes &&
-            currentMinutes < slotEndMinutes
-        );
-    }) || "";
+    //     return (
+    //         currentMinutes >= slotStartMinutes &&
+    //         currentMinutes < slotEndMinutes
+    //     );
+    // }) || "";
 };
+    useEffect(()=>{
+        if(!router.isReady) return;
+        setSearch(searchValue);
+
+    },[router.isReady])
 
     return (
         <MainLayout title="Donors" loading={loading} status={status}>
