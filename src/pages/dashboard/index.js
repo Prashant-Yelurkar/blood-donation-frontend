@@ -125,6 +125,7 @@ import styles from "./dashboard.module.css";
 import MainLayout from "@/components/Layout/MainLayout";
 import { toast } from "sonner";
 import axios from "axios";
+import { dashboardSummmary } from "@/Actions/Controllers/DashboardController";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -132,7 +133,7 @@ const Dashboard = () => {
 
   const fetchDashboard = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/dashboard/"); // 👈 your API
+      const res = await dashboardSummmary()
       if (res.data.success) {
         setData(res.data.data);
       } else {
