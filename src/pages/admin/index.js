@@ -1,16 +1,15 @@
 import MainLayout from "@/components/Layout/MainLayout";
 import React, { useEffect, useRef, useState } from "react";
-import styles from "./donor.module.css";
+import styles from "./admin.module.css";
 import { useRouter } from "next/router";
 import { getRoute } from "@/utils/Routes";
-import { deleteDonorAPI, getAllDoonersAPI } from "@/Actions/Controllers/DonorController";
+import { deleteAdminAPI, gatAllAdminAPI  } from "@/Actions/Controllers/adminController";
 import { toast } from "sonner";
-import { useSelector } from "react-redux";
 import DeleteConfirmModal from "@/components/modal/DeleteModal";
 import { refractorAllUser } from "@/utils/dataRefractors";
 
 const DonorPage = () => {
-    const { user } = useSelector((state) => state.user);
+
     const [deleteModal, setDeleteModal] = useState({
         open: false,
         name: '',
@@ -21,13 +20,47 @@ const DonorPage = () => {
     const [search, setSearch] = useState("");
     const router = useRouter();
 
-    const [donors, setDonors] = useState([]);
+    const [admins, setAdmins] = useState([]);
 
-    const filteredVolunteers = donors.filter(
+    const filteredAdmins = admins.filter(
         (v) =>
             v.name.toLowerCase().includes(search.toLowerCase()) ||
             v.identifier.value.toLowerCase().includes(search.toLowerCase())
     );
+
+
+    const getallAdmins = async () => {
+        try {
+            setLoading(true);
+            const res = await gatAllAdminAPI();
+            setStatus(res.status)
+            if (res.success) {
+                const rf = await refractorAllUser(res.data.admin);
+                setAdmins(rf);                
+            } else {
+                toast.error(res.data.message || 'Failed to fetch Admin');
+            }
+        }
+        catch (err) {
+            toast.error(err.message || 'An error occurred while fetching Admins');
+        }
+        finally {
+            setLoading(false);
+        }
+    }
+
+    const handelClick = (id) => {
+        router.push(getRoute('ADMIN_DETAILS') + `${id}`);
+    }
+    const handelUpdate = (id) => {
+        router.push(getRoute('ADMIN_DETAILS') + `${id}?edit=true`);
+    }
+
+    const handelAddAdmin = () => {
+        router.push(getRoute('ADMIN_ADD'));
+    }
+
+
 
     const handleDelete = (id, name) => {
         setDeleteModal({
@@ -40,19 +73,21 @@ const DonorPage = () => {
     const handleDeleteConfirm = async () => {
         setLoading(true)
         try {
-            const res = await deleteDonorAPI(deleteModal.id)
+            const res = await deleteAdminAPI(deleteModal.id)
             if (res.success) {
-                setDonors(donors.filter((v) => v.id !== deleteModal.id));
+                setAdmins(admins.filter((v) => v.id !== deleteModal.id));
                 toast.success("Donor deleted Successfully !")
             }
-            else {
-                toast.error(res.message || 'An error occurred while fetching donors');
+            else
+            {
+                toast.error(res.message || 'An error occurred while fetching admins');
             }
         }
-        catch (error) {
-            toast.error(res.message || 'An error occurred while fetching donors');
+        catch(error)
+        {
+            toast.error(error.message || 'An error occurred while fetching admins');
         }
-        finally {
+        finally{
             setLoading(false)
             setDeleteModal({
                 open: false,
@@ -62,7 +97,7 @@ const DonorPage = () => {
 
     };
 
-    const handelDeleteCancle = async () => {
+    const handelDeleteCancle = async ()=>{
         setDeleteModal({
             open: false,
             name: ''
@@ -70,58 +105,24 @@ const DonorPage = () => {
     }
 
 
-    const handleAddVolunteer = () => {
-        router.push(getRoute('DONOR_ADD'));
-    }
-
-
-    const getAllDonors = async () => {
-        try {
-            setLoading(true);
-            const res = await getAllDoonersAPI({ area: user.area?.id });
-            setStatus(200)
-            if (res.success) {
-                const rf = await refractorAllUser(res.data.donors);
-                setDonors(rf);
-            } else {
-                toast.error(res.message || 'Failed to fetch Donors');
-            }
-        }
-        catch (err) {
-            toast.error(err.message || 'An error occurred while fetching donors');
-        }
-        finally {
-            setLoading(false);
-        }
-    }
-
-    const handelClick = (id) => {
-        router.push(getRoute('DONOR_DETAILS') + `/${id}`);
-    }
-    const handelUpdate = (id) => {
-        router.push(getRoute('DONOR_DETAILS') + `/${id}?edit=true`);
-    }
-
     useEffect(() => {
-        if (!router.isReady) return;
-        if (!user.id) return;
-        getAllDonors();
-    }, [router.isReady, user.id]);
+        getallAdmins();
+    }, []);
 
 
     return (
-        <MainLayout title="Donor" loading={loading} status={status}>
+        <MainLayout title="Admin" loading={loading} status={status}>
             <div className={styles.container}>
                 <DeleteConfirmModal
                     open={deleteModal.open}
                     name={deleteModal.name}
-                    title="Donor"
+                    title="Admin"
                     onCancel={handelDeleteCancle}
                     onConfirm={handleDeleteConfirm} />
                 {/* Header */}
                 <div className={styles.header}>
-                    <h2>Donors</h2>
-                    <button onClick={handleAddVolunteer} className={styles.addBtn}>+ Add Donor</button>
+                    <h2>Admins</h2>
+                    <button onClick={handelAddAdmin} className={styles.addBtn}>+ Add Admin</button>
                 </div>
 
                 {/* Search */}
@@ -141,20 +142,20 @@ const DonorPage = () => {
                                 <th>Sr No</th>
                                 <th>Name</th>
                                 <th>Contact</th>
-                                <th>Status</th>
                                 <th>Area</th>
+                                <th>Active</th>
                                 <th className={styles.actions}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredVolunteers.length === 0 ? (
+                            {filteredAdmins.length === 0 ? (
                                 <tr>
                                     <td colSpan="4" className={styles.noData}>
-                                        No donors found
+                                        No admins found
                                     </td>
                                 </tr>
                             ) : (
-                                filteredVolunteers.map((v, index) => (
+                                filteredAdmins.map((v, index) => (
                                     <tr key={v.id}>
                                         <td>{index + 1}</td>
                                         <td className={styles.name} onClick={() => handelClick(v.id)}>{v.name}</td>
@@ -164,20 +165,18 @@ const DonorPage = () => {
                                                 <a href={`mailto:${v.identifier.value}`}>{v.identifier.value}</a>
                                             }
                                         </td>
-                                        <td>{v.isActive ? "Active" : "Inactive"}</td>
                                         <td>{v.area.name} , {v.area.pincode}</td>
+                                        <td>{v.isActive ? "Active" :"Inactive"}</td>
                                         <td className={styles.actions}>
                                             <button
                                                 onClick={() => handelUpdate(v.id)}
                                                 className={styles.editBtn}>Update</button>
-                                            {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
-                                                <button
-                                                    className={styles.deleteBtn}
-                                                    onClick={() => handleDelete(v.id, v.name)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            }
+                                            <button
+                                                className={styles.deleteBtn}
+                                                onClick={() => handleDelete(v.id, v.name)}
+                                            >
+                                                Delete
+                                            </button>
                                         </td>
                                     </tr>
                                 ))

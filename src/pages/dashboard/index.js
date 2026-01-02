@@ -124,8 +124,10 @@ import React, { useEffect, useState } from "react";
 import styles from "./dashboard.module.css";
 import MainLayout from "@/components/Layout/MainLayout";
 import { toast } from "sonner";
-import axios from "axios";
+
 import { dashboardSummmary } from "@/Actions/Controllers/DashboardController";
+import { registerSocketUser } from "@/socket/socket";
+import { useSelector } from "react-redux";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -146,11 +148,16 @@ const Dashboard = () => {
     }
   };
 
+  const {user} = useSelector((state)=> state.user)
   useEffect(() => {
+    if(!user.id) return;
     fetchDashboard();
-  }, []);
+  }, [user.id]);
 
   const s = data?.summary;
+
+
+
 
   return (
     <MainLayout title="Dashboard" loading={loading}>

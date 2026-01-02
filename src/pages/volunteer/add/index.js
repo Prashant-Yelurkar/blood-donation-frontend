@@ -1,14 +1,17 @@
 import MainLayout from "@/components/Layout/MainLayout";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./add.module.css";
 import { BloodGroupOptions, GenderOptions } from "@/utils/Options";
 import { addVolunteerAPI, seedVolunteerAPI } from "@/Actions/Controllers/VolunteerController";
 import { toast } from "sonner";
+import { getAreaAPI, getAreaDetailsAPI } from "@/Actions/Controllers/areaController";
+import { useSelector } from "react-redux";
 
 const AddVolunteer = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
-  const [excelFile, setExcelFile] = useState(null); 
+  const [excelFile, setExcelFile] = useState(null);
+  const { user } = useSelector((state) => state.user);;
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -19,8 +22,38 @@ const AddVolunteer = () => {
     weight: "",
     address: "",
     workAddress: "",
+    area: "",
     lastDonationDate: "",
   });
+  const [areas, setAreas] = useState([])
+  const getAreas = async () => {
+    try {
+      const res = await getAreaAPI();
+      if (res.success) {
+        setAreas(res.data.areas);
+      }
+      else
+        toast.error(res.data.message || "Unable to load Areas")
+    }
+    catch (error) {
+      toast.error(error.messsage || "Failed to load Areas!")
+    }
+  }
+
+    const getAreasById = async (id) => {
+    try {
+      const res = await getAreaDetailsAPI(id);
+      if (res.success) {
+        setAreas([...areas, res.data.area]);
+      }
+      else
+        toast.error(res.data.message || "Unable to load Areas")
+    }
+    catch (error) {
+      toast.error(error.messsage || "Failed to load Areas!")
+    }
+  }
+
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -66,6 +99,20 @@ const AddVolunteer = () => {
       setStatus(res.status);
       if (res.success) {
         toast.success("Volunteer added successfully");
+        setForm({
+    name: "",
+    email: "",
+    contact: "",
+    dob: "",
+    gender: "",
+    bloodGroup: "",
+    weight: "",
+    address: "",
+    workAddress: "",
+    area: "",
+    lastDonationDate: "",
+  })
+        
       } else {
         toast.error(res.data?.message || "Failed to add volunteer");
       }
@@ -75,6 +122,14 @@ const AddVolunteer = () => {
       setLoading(false);
     }
   };
+  
+  useEffect(() => {
+    if(!user.id) return;
+    if(user.role =="SUPER_ADMIN")
+      getAreas()
+    else
+      getAreasById(user.area.id)
+  }, [user])
 
   return (
     <MainLayout title="Add Volunteer" loading={loading} status={status}>
@@ -84,7 +139,9 @@ const AddVolunteer = () => {
         <form className={styles.form} onSubmit={handleSubmit}>
           {/* Name */}
           <div className={styles.field}>
-            <label>Name *</label>
+            <label>Name
+              <span className={styles.required}>*</span>
+            </label>
             <input
               type="text"
               name="name"
@@ -107,7 +164,9 @@ const AddVolunteer = () => {
 
           {/* Contact */}
           <div className={styles.field}>
-            <label>Contact *</label>
+            <label>Contact
+              <span className={styles.required}>*</span>
+            </label>
             <input
               type="tel"
               name="contact"
@@ -124,13 +183,15 @@ const AddVolunteer = () => {
               name="dob"
               value={form.dob}
               onChange={handleChange}
-             
+
             />
           </div>
 
           {/* Gender */}
           <div className={styles.field}>
-            <label>Gender *</label>
+            <label>Gender
+              <span className={styles.required}>*</span>
+            </label>
             <select
               name="gender"
               value={form.gender}
@@ -153,7 +214,7 @@ const AddVolunteer = () => {
               name="bloodGroup"
               value={form.bloodGroup}
               onChange={handleChange}
-           
+
             >
               <option value="">SELECT</option>
               {BloodGroupOptions.map((bg) => (
@@ -186,6 +247,19 @@ const AddVolunteer = () => {
             />
           </div>
 
+          <div className={styles.field}>
+            <label>Area
+              <span className={styles.required}>*</span>
+            </label>
+            <select name="area" value={form.area} onChange={handleChange} required
+            disabled={user.role != "SUPER_ADMIN"} >
+              { user.role == "SUPER_ADMIN" && <option value="">Select</option>}
+              {areas.map((g) => (
+                <option key={g.name} value={g._id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Address */}
           <div className={`${styles.field} ${styles.full}`}>
             <label>Address</label>
@@ -194,7 +268,7 @@ const AddVolunteer = () => {
               rows="3"
               value={form.address}
               onChange={handleChange}
-              required
+        
             />
           </div>
           <div className={`${styles.field} ${styles.full}`}>
@@ -204,7 +278,7 @@ const AddVolunteer = () => {
               rows="3"
               value={form.workAddress}
               onChange={handleChange}
-              required
+           
             />
           </div>
 
@@ -212,8 +286,9 @@ const AddVolunteer = () => {
             <button type="submit">Save Volunteer</button>
           </div>
         </form>
-                  {/* Excel Upload */}
-        
+        {/* Excel Upload */}
+        {
+          user.role === "SUPER_ADMIN" &&
           <div className={styles.uploadBox}>
             <h3>Bulk Register Volunteer</h3>
 
@@ -226,15 +301,17 @@ const AddVolunteer = () => {
             <button
               className={styles.uploadBtn}
               onClick={handleUploadExcel}
-            disabled={loading}
+              disabled={loading}
             >
               {loading ? "Uploading..." : "Upload & Register"}
             </button>
 
             <p className={styles.hint}>Accepted formats: CSV, XLSX</p>
           </div>
-
-          {/* Download Template */}
+        }
+        {/* Download Template */}
+        {
+          user.role === "ADMIN" &&
           <div className={styles.field}>
             <label>Download Excel Template</label>
             <a
@@ -245,6 +322,8 @@ const AddVolunteer = () => {
               Download Template
             </a>
           </div>
+        }
+
       </div>
     </MainLayout>
   );

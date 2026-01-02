@@ -3,20 +3,21 @@ import React, { useEffect, useRef, useState } from "react";
 import styles from "./volunteer.module.css";
 import { useRouter } from "next/router";
 import { getRoute } from "@/utils/Routes";
-import { deleteVolunteerAPI, getAllVolunteersAPI, refractorAllVolunteersAPI } from "@/Actions/Controllers/VolunteerController";
+import { deleteVolunteerAPI, getAllVolunteersAPI } from "@/Actions/Controllers/VolunteerController";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import DeleteConfirmModal from "@/components/modal/DeleteModal";
+import { refractorAllUser } from "@/utils/dataRefractors";
 
 const VolunteerPage = () => {
+
+    const { user } = useSelector((state) => state.user);
 
     const [deleteModal, setDeleteModal] = useState({
         open: false,
         name: '',
     })
 
-    const isVerified = useSelector((state) => state.auth.isVerified);
-    const hasFetched = useRef(false);
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState(null);
     const [search, setSearch] = useState("");
@@ -45,16 +46,14 @@ const VolunteerPage = () => {
                 setVolunteers(volunteers.filter((v) => v.id !== deleteModal.id));
                 toast.success("Volunteer deleted Successfully !")
             }
-            else
-            {
+            else {
                 toast.error(res.data.message || 'An error occurred while fetching volunteers');
             }
         }
-        catch(error)
-        {
+        catch (error) {
             toast.error(res.message || 'An error occurred while fetching volunteers');
         }
-        finally{
+        finally {
             setLoading(false)
             setDeleteModal({
                 open: false,
@@ -63,11 +62,11 @@ const VolunteerPage = () => {
         }
 
     };
-    const handelDeleteCancle = async ()=>{
-    setDeleteModal({
-        open: false,
-        name: ''
-    })
+    const handelDeleteCancle = async () => {
+        setDeleteModal({
+            open: false,
+            name: ''
+        })
     }
 
 
@@ -78,17 +77,17 @@ const VolunteerPage = () => {
     const getAllVolunteers = async () => {
         try {
             setLoading(true);
-            const res = await getAllVolunteersAPI();
+            const res = await getAllVolunteersAPI({ area: user.area?.id });
             setStatus(200)
             if (res.success) {
-                const rf = await refractorAllVolunteersAPI(res.data.volunteers);
+                const rf = await refractorAllUser(res.data.volunteers);
                 setVolunteers(rf);
             } else {
                 toast.error(res.data.message || 'Failed to fetch volunteers');
             }
         }
         catch (err) {
-            toast.error(res.message || 'An error occurred while fetching volunteers');
+            toast.error(err.message || 'An error occurred while fetching volunteers');
         }
         finally {
             setLoading(false);
@@ -104,12 +103,9 @@ const VolunteerPage = () => {
 
     useEffect(() => {
         if (!router.isReady) return;
-        if (!isVerified) return;
-        if (hasFetched.current) return;
-
-        hasFetched.current = true;
+        if (!user.id) return;
         getAllVolunteers();
-    }, [router.isReady, isVerified]);
+    }, [router.isReady, user.id]);
 
     return (
         <MainLayout title="Volunteer" loading={loading} status={status}>
@@ -118,12 +114,12 @@ const VolunteerPage = () => {
                     open={deleteModal.open}
                     name={deleteModal.name}
                     title="Volunteer"
-                       onCancel={handelDeleteCancle}
+                    onCancel={handelDeleteCancle}
                     onConfirm={handleDeleteConfirm} />
                 {/* Header */}
                 <div className={styles.header}>
                     <h2>Volunteers</h2>
-                    <button onClick={handleAddVolunteer} className={styles.addBtn}>+ Add Volunteer</button>
+                    {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") && <button onClick={handleAddVolunteer} className={styles.addBtn}>+ Add Volunteer</button>}
                 </div>
 
                 {/* Search */}
@@ -143,6 +139,8 @@ const VolunteerPage = () => {
                                 <th>Sr No</th>
                                 <th>Name</th>
                                 <th>Contact</th>
+                                <th>Status</th>
+                                <th>Area</th>
                                 <th className={styles.actions}>Actions</th>
                             </tr>
                         </thead>
@@ -164,16 +162,20 @@ const VolunteerPage = () => {
                                                 <a href={`mailto:${v.identifier.value}`}>{v.identifier.value}</a>
                                             }
                                         </td>
+                                        <td>{v.isActive ? "Active" : "Inactive"}</td>
+                                        <td>{v.area.name} , {v.area.pincode}</td>
                                         <td className={styles.actions}>
                                             <button
                                                 onClick={() => handelUpdate(v.id)}
                                                 className={styles.editBtn}>Update</button>
-                                            <button
-                                                className={styles.deleteBtn}
-                                                onClick={() => handleDelete(v.id, v.name)}
-                                            >
-                                                Delete
-                                            </button>
+                                            {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
+                                                <button
+                                                    className={styles.deleteBtn}
+                                                    onClick={() => handleDelete(v.id, v.name)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            }
                                         </td>
                                     </tr>
                                 ))

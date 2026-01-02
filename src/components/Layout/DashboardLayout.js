@@ -1,25 +1,25 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../Dashboard/Sidebar";
 import Topbar from "../Dashboard/Topbar";
 import styles from "../Dashboard/dashboardlayout.module.css";
-import { menuItems } from "@/utils/MenuItem";
+import { getMenuItems } from "@/utils/MenuItem";
 
-const DashboardLayout = ({ children , title }) => {
+
+const DashboardLayout = ({ children , title, role }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const router = useRouter();
-
+  
   return (
     <div className={styles.layout}>
       {/* Desktop Sidebar */}
-      <Sidebar menuItems={menuItems} title={title} />
+      <Sidebar menuItems={getMenuItems(role)} title={title} />
 
       {/* Mobile Topbar */}
       <Topbar  onMenuClick={() => setMenuOpen(true)} />
 
       {/* Mobile Slide Menu */}
       <div className={`${styles.mobileMenu} ${menuOpen ? styles.open : ""}`}>
-        <Sidebar isMobile onClose={() => setMenuOpen(false)} menuItems={menuItems} title={title} />
+        <Sidebar isMobile onClose={() => setMenuOpen(false)} menuItems={getMenuItems(role)} title={title} />
       </div>
 
       {menuOpen && (

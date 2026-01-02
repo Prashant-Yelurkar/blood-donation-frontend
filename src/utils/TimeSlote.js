@@ -17,6 +17,7 @@ const BASE_TIME_SLOTS = [
   { start: 17, end: 18 },
   { start: 18, end: 19 },
   { start: 19, end: 20 },
+  { start: 20, end: 21 },
 ];
 
 // Final exported slots

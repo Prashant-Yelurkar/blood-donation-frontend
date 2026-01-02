@@ -5,15 +5,13 @@
   max-width: 900px;
   margin: auto;
 }
-
-.container h2 {
-  margin-bottom: 20px;
-}
-
 .required{
   color: #8f0000;
   padding-left: 5px;
   font-weight: 900;
+}
+.container h2 {
+  margin-bottom: 20px;
 }
 
 /* Form Grid */
@@ -73,43 +71,6 @@
 .actions button:hover {
   background: #8f0000;
 }
-
-/* Excel upload field */
-.field input[type="file"] {
-  padding: 5px;
-  font-size: 14px;
-}
-
-.field button {
-  margin-top: 5px;
-  padding: 6px 12px;
-  background: #2196f3;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.field button:hover {
-  background: #0b7dda;
-}
-
-/* Download template button */
-.downloadButton {
-  display: inline-block;
-  padding: 6px 12px;
-  background: #ff9800;
-  color: white;
-  border-radius: 5px;
-  text-decoration: none;
-  text-align: center;
-  margin-top: 5px;
-}
-
-.downloadButton:hover {
-  background: #e68900;
-}
-
 
 /* Mobile */
 @media (max-width: 600px) {
@@ -188,4 +149,20 @@
 .hint {
   font-size: 12px;
   color: #6b7280;
+}
+
+/* Download template button */
+.downloadButton {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #ff9800;
+  color: white;
+  border-radius: 5px;
+  text-decoration: none;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.downloadButton:hover {
+  background: #e68900;
 }

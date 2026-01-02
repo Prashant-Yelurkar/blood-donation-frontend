@@ -2,467 +2,355 @@ import MainLayout from "@/components/Layout/MainLayout";
 import React, { useEffect, useState } from "react";
 import styles from "./edit.module.css";
 import { useRouter } from "next/router";
-import {
-    getEventUserAPI,
-    updateUserStatus,
-} from "@/Actions/Controllers/eventController";
 import { toast } from "sonner";
-import { bloodDonationRejectedReasons } from "@/utils/RejectionReason";
-import { TIME_SLOTS } from "@/utils/TimeSlote";
+import { useSelector } from "react-redux";
+import {
+  getEventDetailsById,
+  updateEventAPI,
+} from "@/Actions/Controllers/eventController";
+import { getAllVolunteersAPI } from "@/Actions/Controllers/VolunteerController";
 
-/* 🔹 Call Status Options */
-const CALL_STATUSES = [
-    { label: "Answered", value: "ANSWERED" },
-    { label: "Not Connected", value: "NOT_CONNECTED" },
-    { label: "Not Answered", value: "NOT_ANSWERED" },
-];
+const EventDetails = () => {
+  const router = useRouter();
+  const { id, edit } = router.query; // edit=true makes form editable by default
+  const { user } = useSelector((state) => state.user);
 
-const EditEvent = () => {
-    const router = useRouter();
-    const { id ,searchValue } = router.query;
-  
-    const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState("");
-    const [timeSlotFilter, setTimeSlotFilter] = useState(""); // NEW
-    const [search, setSearch] = useState("");
-    const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({});
+  const [isEditable, setIsEditable] = useState(edit === "true");
 
-    /* 🔹 Modal States */
-    const [showModal, setShowModal] = useState(false);
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [actionType, setActionType] = useState("");
-    const [reason, setReason] = useState("");
-    const [description, setDescription] = useState("");
-    const [callStatus, setCallStatus] = useState("");
-    const [timeSlot, setTimeSlot] = useState("");
+  const [allVolunteers, setAllVolunteers] = useState([]);
+  const [callVolunteers, setCallVolunteers] = useState([]);
+  const [attendanceVolunteers, setAttendanceVolunteers] = useState([]);
 
-    const filtered = users.filter(
-        (u) =>
-            u.name.toLowerCase().includes(search.toLowerCase()) ||
-            (u.contact && u.contact.includes(search))
-    );
+  // Fetch Event Details
+  const getEventDetails = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await getEventDetailsById(id);
+      if (res.success) {
+        const event = res.data.event;
 
-    const timeSlotToMinutes = (slot = "") => {
-        if (!slot || slot === "ANY TIME") return Infinity;
-
-        // "08:00 - 09:00" → "08:00"
-        const start = slot.split("-")[0].trim();
-        const [hour, minute] = start.split(":").map(Number);
-
-        return hour * 60 + minute;
-    };
-    const getUsers = () => {
-        let filteredUsers = filtered;
-
-        switch (filter) {
-            case "ACCEPTED":
-                filteredUsers = filteredUsers.filter((u) => u.status === "DONATED");
-                break;
-            case "REMAINING":
-                filteredUsers = filteredUsers.filter((u) => u.status === "PENDING");
-                break;
-            case "REJECTED":
-                filteredUsers = filteredUsers.filter((u) => u.status === "REJECTED");
-                break;
-            case "CANCELLED":
-                filteredUsers = filteredUsers.filter((u) => u.status === "CANCELLED");
-                break;
-            default:
-                break;
+        // Populate volunteers by role
+        const calls = [];
+        const attendance = [];
+        if (event.volunteers?.length > 0) {
+          event.volunteers.forEach((v) => {
+            if (v.permissions?.canCall) calls.push(v.user._id || v.user);
+            if (v.permissions?.canAcceptAttendance) attendance.push(v.user._id || v.user);
+          });
         }
 
-        const normalizeTimeSlot = (slot = "") =>
-            slot
-                .replace(/\s+/g, "")
-                .replace("–", "-")
-                .trim();
+        setCallVolunteers(calls);
+        setAttendanceVolunteers(attendance);
+        setForm(event);
 
-
-        if (timeSlotFilter) {
-            filteredUsers = filteredUsers.filter(
-                (u) =>
-                    normalizeTimeSlot(u.timeSloat) ===
-                    normalizeTimeSlot(timeSlotFilter)
-            );
-        } else {
-            filteredUsers = filteredUsers.sort((a, b) => {
-                const aTime = timeSlotToMinutes(a.timeSloat);
-                const bTime = timeSlotToMinutes(b.timeSloat);
-
-                // ✅ "ANY TIME" always last
-                if (aTime === Infinity && bTime === Infinity) return 0;
-                if (aTime === Infinity) return 1;
-                if (bTime === Infinity) return -1;
-
-                return aTime - bTime;
-            });
-        }
-        console.log(filteredUsers);
-
-
-        return filteredUsers;
-    };
-
-    const getUsersData = async () => {
-        setLoading(true);
-        try {
-            const res = await getEventUserAPI(id);
-            if (res.success) setUsers(res.data.data);
-            else toast.error("Error while fetching users");
-        } catch (err) {
-            console.log(err);
-            toast.error("Something went wrong");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (!router.isReady || !id) return;
-        getUsersData();
-    }, [id]);
-
-    const list = getUsers();
-
-    const openModal = (user) => {
-        setSelectedUser(user);
-        setActionType("");
-        setReason("");
-        setDescription("");
-        setCallStatus("");
-        setTimeSlot(user.timeSloat || "");
-        setShowModal(true);
-    };
-
-    const handleSubmit = async () => {
-        if (!actionType) {
-            toast.error("Please select action");
-            return;
-        }
-
-        if (actionType === "REJECTED") {
-            if (!reason) {
-                toast.error("Rejection reason required");
-                return;
-            }
-            if (!timeSlot) {
-                toast.error("Please select a time slot");
-                return;
-            }
-        }
-
-        if (actionType === "CALL_MADE") {
-            if (!callStatus) {
-                toast.error("Call status required");
-                return;
-            }
-            if (callStatus === "ANSWERED") {
-                if (!description.trim() && !timeSlot) {
-                    toast.error("Call description or TimeSloat required for answered calls");
-                    return;
-                }
-                // if (!timeSlot) {
-                //     toast.error("Please select a time slot for answered calls");
-                //     return;
-                // }
-            }
-        }
-
-        if (actionType === "DONATED" && !timeSlot) {
-            toast.error("Please select a time slot");
-            return;
-        }
-
-        try {
-            let payload = {};
-
-            if (actionType === "REJECTED") {
-                payload = {
-                    status: "REJECTED",
-                    rejectionReason: reason,
-                    timeSlot,
-                };
-            } else if (actionType === "DONATED") {
-                payload = {
-                    status: "DONATED",
-                    timeSlot,
-                };
-            }
-            else if (actionType === "CANCELLED") {
-                payload = {
-                    status: "CANCELLED",
-                    timeSlot,
-                };
-            } else if (actionType === "CALL_MADE") {
-                payload = {
-                    status: "CALL_MADE",
-                    callStatus,
-                    ...(callStatus === "ANSWERED" ? { description } : {}),
-                    ...(timeSlot ? { timeSlot } : {}),
-                };
-            }
-
-            const res = await updateUserStatus(id, selectedUser.id, payload);
-
-            if (res?.success) {
-                toast.success("Updated successfully");
-                setShowModal(false);
-                getUsersData();
-                setSearch('')
-                setSelectedUser({})
-            } else {
-                toast.error(res.data?.message || "Error while updating");
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error("Something went wrong");
-        }
-    };
-
-    const handelRegister = () => {
-        router.push(`/event/${id}/register?searchValue=${search}`);
-    };
-
-    
-    const handelUserClick =(user)=>{
-        setSelectedUser(user)
-        router.push(`/event/${id}/edit?searchValue=${user.id}`);
-        setTimeout(()=>(
-            router.push(`/donor/${user.id}`)
-        ),100)
+        // Fetch volunteers for this event's area
+        if (event.area) getVolunteers(event.area._id || event.area);
+      } else {
+        toast.error(res.message || "Failed to fetch event details");
+      }
+    } catch (err) {
+      toast.error("Server error while fetching event details");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const handleContactClick = (user) => {
-        setSearch(user.contact || user.email);
-        setSelectedUser(user); 
-        if (user.contact) {
-            window.location.href = `tel:${user.contact}`;
-        }
-    };
+  // Fetch Volunteers for given area
+  const getVolunteers = async (areaId) => {
+    if (!areaId) return;
+    try {
+      const res = await getAllVolunteersAPI({ area: areaId });
+      if (res.success) setAllVolunteers(res.data.volunteers);
+    } catch (err) {
+      toast.error("Failed to fetch volunteers");
+    }
+  };
 
-    useEffect(()=>{
-        if(!router.isReady) return;        
-        setSelectedUser({id:searchValue})
-    },[router])
-    return (
-        <MainLayout title="Edit Event" loading={loading}>
-            <div className={styles.container}>
-                {/* Search */}
-                <div className={styles.row}>
-                    <input
-                        className={styles.search}
-                        placeholder="Search by name or contact"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                    {list.length === 0 && (
-                        <button onClick={handelRegister} className={styles.addBtn}>
-                            + New User
-                        </button>
-                    )}
-                </div>
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({
+      ...form,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
 
-                {/* Filters */}
-                <div className={styles.filtersRow}>
-                    <select
-                        className={styles.dropdown}
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                    >
-                        <option value="REGISTERED">Registered Users</option>
-                        <option value="ACCEPTED">Accepted (Donated)</option>
-                        <option value="REMAINING">Remaining (Pending)</option>
-                        <option value="REJECTED">Rejected</option>
-                        <option value="CANCELLED">Cancelled</option>
-                    </select>
+  const addVolunteer = (userId, type) => {
+    if (!userId) return;
+    if (type === "CALL" && !callVolunteers.includes(userId)) {
+      setCallVolunteers([...callVolunteers, userId]);
+    }
+    if (type === "ATTENDANCE" && !attendanceVolunteers.includes(userId)) {
+      setAttendanceVolunteers([...attendanceVolunteers, userId]);
+    }
+  };
 
-                    <select
-                        className={styles.dropdown}
-                        value={timeSlotFilter}
-                        onChange={(e) => setTimeSlotFilter(e.target.value)}
-                    >
-                        <option value="">All Time Slots</option>
-                        {TIME_SLOTS.map((t) => (
-                            <option key={t.label} value={t.label}>
-                                {t.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+  const removeVolunteer = (userId, type) => {
+    if (type === "CALL") {
+      setCallVolunteers(callVolunteers.filter((id) => id !== userId));
+    }
+    if (type === "ATTENDANCE") {
+      setAttendanceVolunteers(attendanceVolunteers.filter((id) => id !== userId));
+    }
+  };
 
-                {/* Table */}
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Sr</th>
-                                <th>Name</th>
-                                <th>Contact</th>
-                                <th>Refer By</th>
-                                <th>Calls</th>
-                                <th>Call Time</th>
-                                {filter === "REMAINING" && <th>Call Status</th>}
-                                {filter === "REMAINING" && <th>Last Call Note</th>}
-                                <th>Time Slot</th>
-                                <th>Status</th>
-                                {filter === "REMAINING" && <th>Action</th>}
-                                {filter === "REJECTED" && <th>Reason</th>}
-                            </tr>
-                        </thead>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-                        <tbody>
-                            {list.length === 0 ? (
-                                <tr>
-                                    <td colSpan="9" className={styles.noData}>
-                                        No users found
-                                    </td>
-                                </tr>
-                            ) : (
-                                list.map((u, i) => (
-                                    <tr key={u.id}
-                                    className={u.id ==selectedUser?.id? styles.selected:{}}>
-                                        <td>{i + 1}</td>
-                                        <td className={styles.link}>
-                                            <span onClick={()=>handelUserClick(u)}>
-                                                {u.name}
-                                            </span>
-                                        </td>
-                                        <td className={styles.link}>
-                                            <span onClick={()=> handleContactClick(u)}>
-                                                {u.contact}
-                                            </span>
-                                        </td>
-                                        <td>{u.referredBy}</td>
-                                        <td>{u.totalCallMade || 0}</td>
-                                        <td>{u.lastCallTime || "N/A"}</td>
-                                        {filter === "REMAINING" && <td>{u.callStatus || "N/A"}</td>}
-                                        {filter === "REMAINING" && (
-                                            <td>{u.lastCallFeedback || "N/A"}</td>
-                                        )}
-                                        <td>{u.timeSloat || "-"}</td>
-                                        <td>
-                                            <span
-                                                className={`${styles.badge} ${u.status === "DONATED"
-                                                        ? styles.green
-                                                        : u.status === "REJECTED"
-                                                            ? styles.red
-                                                            : u.status === "CANCELLED"
-                                                                ? styles.gray
-                                                                : styles.orange
-                                                    }`}
-                                            >
-                                                {u.status}
-                                            </span>
-                                        </td>
-                                        {filter === "REJECTED" && <td>{u.rejectedReason}</td>}
-                                        {/* {filter && ( */}
-                                            <td>
-                                                <button
-                                                    className={styles.actionBtn}
-                                                    onClick={() => openModal(u)}
-                                                >
-                                                    Update Status
-                                                </button>
-                                            </td>
-                                        {/* )} */}
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+    const volunteersPayload = [];
 
-                {/* 🔹 MODAL */}
-                {showModal && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modal}>
-                            <h3>Update Status</h3>
+    callVolunteers.forEach((id) => {
+      const existing = volunteersPayload.find((v) => v.user.toString() === id);
+      if (existing) existing.permissions.canCall = true;
+      else
+        volunteersPayload.push({
+          user: id,
+          permissions: { canCall: true, canAcceptAttendance: false },
+        });
+    });
 
-                            {/* Action */}
-                            <select
-                                className={styles.dropdown}
-                                value={actionType}
-                                onChange={(e) => setActionType(e.target.value)}
-                            >
-                                <option value="">Select Action</option>
-                                <option value="DONATED">Donated</option>
-                                <option value="REJECTED">Rejected</option>
-                                <option value="CALL_MADE">Call Made</option>
-                                <option value="CANCELLED">Cancelled</option>
-                            </select>
+    attendanceVolunteers.forEach((id) => {
+      const existing = volunteersPayload.find((v) => v.user.toString() === id);
+      if (existing) existing.permissions.canAcceptAttendance = true;
+      else
+        volunteersPayload.push({
+          user: id,
+          permissions: { canCall: false, canAcceptAttendance: true },
+        });
+    });
 
-                            {/* Rejection Reason */}
-                            {actionType === "REJECTED" && (
-                                <select
-                                    className={styles.dropdown}
-                                    onChange={(e) => setReason(e.target.value)}
-                                >
-                                    <option value="">Select Reason</option>
-                                    {bloodDonationRejectedReasons.map((r) => (
-                                        <option key={r.value} value={r.value}>
-                                            {r.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
+    const payload = { ...form, volunteers: volunteersPayload };
 
-                            {/* Call Made */}
-                            {actionType === "CALL_MADE" && (
-                                <>
-                                    <select
-                                        className={styles.dropdown}
-                                        value={callStatus}
-                                        onChange={(e) => setCallStatus(e.target.value)}
-                                    >
-                                        <option value="">Select Call Status</option>
-                                        {CALL_STATUSES.map((c) => (
-                                            <option key={c.value} value={c.value}>
-                                                {c.label}
-                                            </option>
-                                        ))}
-                                    </select>
+    try {
+      const res = await updateEventAPI(id, payload);
+      if (res.success) {
+        toast.success("Event updated successfully");
+        setIsEditable(false);
+      } else {
+        toast.error(res.message || "Failed to update event");
+      }
+    } catch (err) {
+        console.log(err);
+        
+      toast.error("Server error while updating event");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                                    <textarea
-                                        className={styles.search}
-                                        placeholder="Enter call description"
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                    />
-                                </>
-                            )}
+  useEffect(() => {
+    if (!router.isReady) return;
+    getEventDetails();
+  }, [router.isReady, id]);
 
-                            {/* Time Slot */}
-                            <select
-                                className={styles.dropdown}
-                                value={timeSlot}
-                                onChange={(e) => setTimeSlot(e.target.value)}
-                            >
-                                <option value="">Select Time Slot</option>
-                                {TIME_SLOTS.map((t) => (
-                                    <option key={t.label} value={t.label}>
-                                        {t.label}
-                                    </option>
-                                ))}
-                            </select>
+  return (
+    <MainLayout title={isEditable ? "Edit Event" : "Event Details"} loading={loading}>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h2>{isEditable ? "Edit Event" : "Event Details"}</h2>
+          {!isEditable && (
+            <button className={styles.editBtn} onClick={() => setIsEditable(true)}>
+              Edit
+            </button>
+          )}
+        </div>
 
-                            {/* Actions */}
-                            <div className={styles.modalActions}>
-                                <button className={styles.actionBtn} onClick={handleSubmit}>
-                                    Submit
-                                </button>
-                                <button
-                                    className={styles.addBtn}
-                                    onClick={() => setShowModal(false)}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+        <form className={styles.form} onSubmit={handleSubmit}>
+          {/* Event Basic Info */}
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label>Event Name *</label>
+              <input
+                name="name"
+                value={form.name || ""}
+                onChange={handleChange}
+                placeholder="Event Name"
+                disabled={!isEditable}
+                required
+              />
             </div>
-        </MainLayout>
-    );
+
+            <div className={styles.field}>
+              <label>Date *</label>
+              <input
+                type="date"
+                name="date"
+                value={form.date?.split("T")[0] || ""}
+                onChange={handleChange}
+                disabled={!isEditable}
+                required
+              />
+            </div>
+          </div>
+
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label>Start Time *</label>
+              <input
+                type="time"
+                name="startTime"
+                value={form.startTime || ""}
+                onChange={handleChange}
+                disabled={!isEditable}
+                required
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label>End Time *</label>
+              <input
+                type="time"
+                name="endTime"
+                value={form.endTime || ""}
+                onChange={handleChange}
+                disabled={!isEditable}
+                required
+              />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label>Area *</label>
+            <input type="text" value={form.area?.name || ""} disabled />
+          </div>
+
+          <div className={styles.field}>
+            <label>Place *</label>
+            <input
+              name="place"
+              value={form.place || ""}
+              onChange={handleChange}
+              disabled={!isEditable}
+              required
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label>Description</label>
+            <textarea
+              name="description"
+              value={form.description || ""}
+              onChange={handleChange}
+              rows={4}
+              disabled={!isEditable}
+            />
+          </div>
+
+          {/* Completed Field */}
+          <div className={styles.checkbox}>
+            <input
+              type="checkbox"
+              name="completed"
+              checked={form.completed || false}
+              onChange={handleChange}
+              disabled={!isEditable}
+            />
+            <label>Completed</label>
+          </div>
+
+          {/* Volunteers Section */}
+          <div className={styles.volunteersSection}>
+            <h3>Volunteers</h3>
+
+            {/* Call Volunteers */}
+            <div className={styles.volunteerGroup}>
+              {isEditable && (
+                <select
+                  onChange={(e) => addVolunteer(e.target.value, "CALL")}
+                  className={styles.dropdown}
+                >
+                  <option value="">Add Call Volunteer</option>
+                  {allVolunteers.map((v) => (
+                    <option key={v._id} value={v._id}>
+                      {v.profile?.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <strong>Call Volunteers:</strong>
+              <ul className={styles.volunteerList}>
+                {callVolunteers.map((id) => (
+                  <li key={id}>
+                    {allVolunteers.find((v) => v._id === id)?.profile?.name || id}
+                    {isEditable && (
+                      <button
+                        type="button"
+                        onClick={() => removeVolunteer(id, "CALL")}
+                      >
+                        ❌
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Attendance Volunteers */}
+            <div className={styles.volunteerGroup}>
+              {isEditable && (
+                <select
+                  onChange={(e) => addVolunteer(e.target.value, "ATTENDANCE")}
+                  className={styles.dropdown}
+                >
+                  <option value="">Add Attendance Volunteer</option>
+                  {allVolunteers.map((v) => (
+                    <option key={v._id} value={v._id}>
+                      {v.profile?.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <strong>Attendance Volunteers:</strong>
+              <ul className={styles.volunteerList}>
+                {attendanceVolunteers.map((id) => (
+                  <li key={id}>
+                    {allVolunteers.find((v) => v._id === id)?.profile?.name || id}
+                    {isEditable && (
+                      <button
+                        type="button"
+                        onClick={() => removeVolunteer(id, "ATTENDANCE")}
+                      >
+                        ❌
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className={styles.checkbox}>
+            <input
+              type="checkbox"
+              name="isActive"
+              checked={form.isActive || false}
+              onChange={handleChange}
+              disabled={!isEditable}
+            />
+            <label>Event Active</label>
+          </div>
+
+          {isEditable && (
+            <div className={styles.actions}>
+              <button type="submit" className={styles.submitBtn}>
+                Update Event
+              </button>
+              <button
+                type="button"
+                className={styles.cancelBtn}
+                onClick={() => setIsEditable(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </form>
+      </div>
+    </MainLayout>
+  );
 };
 
-export default EditEvent;
+export default EventDetails;

@@ -1,51 +1,78 @@
 import MainLayout from "@/components/Layout/MainLayout";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./details.module.css";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 
-import { useSelector } from "react-redux";
 import { BloodGroupOptions, GenderOptions } from "@/utils/Options";
-import { getDonorDetailsAPI, refractorDonorAPI, refractrUpdateDonorAPI, updateDonorAPI } from "@/Actions/Controllers/DonorController";
+import { getDonorDetailsAPI, refractrUpdateDonorAPI, updateDonorAPI } from "@/Actions/Controllers/DonorController";
+import { getAreaAPI } from "@/Actions/Controllers/areaController";
+import { refractorUserDetails, refractrUpdateUser } from "@/utils/dataRefractors";
+import { getAllUsersAPI } from "@/Actions/Controllers/UserController"; // Make sure you have an API to fetch users
+import { useSelector } from "react-redux";
 
-
-
-
-const EditVolunteer = () => {
+const EditDonors = () => {
   const router = useRouter();
   const { id, edit } = router.query;
-  const isVerified = useSelector((state) => state.auth.isVerified);
-
-  const hasFetched = useRef(false);
+  const { user } = useSelector((state) => state.user)
+  const [areas, setAreas] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isEditable, setIsEditable] = useState(edit);
   const [form, setForm] = useState({});
   const [updatedFields, setUpdatedFields] = useState({});
+
   useEffect(() => {
     if (!router.isReady) return;
     if (!id) return;
-    if (!isVerified) return;
-    if (hasFetched.current) return;
+    getAreas();
+    getUsers(); // fetch users for referral list
+    getDonorDetails(id);
+  }, [id, router.isReady]);
 
-    hasFetched.current = true;
-    getVolunteerDetails(id);
-  }, [id, router.isReady, isVerified]);
-
-
-  const getVolunteerDetails = async (id) => {
+  // Fetch donor details
+  const getDonorDetails = async (id) => {
     setLoading(true);
     try {
       const res = await getDonorDetailsAPI(id);
       if (res.success) {
-        const fr = await refractorDonorAPI(res.data.donor);      
+        const fr = await refractorUserDetails(res.data.donor);
         setForm(fr);
       } else {
-        toast.error(res.message || "Failed to fetch volunteer details");
+        toast.error(res.message || "Failed to fetch donor details");
       }
     } catch (err) {
-      toast.error("An error occurred while fetching volunteer details");
+      toast.error("An error occurred while fetching donor details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch areas
+  const getAreas = async () => {
+    try {
+      const res = await getAreaAPI();
+      if (res.success) {
+        setAreas(res.data.areas);
+      } else {
+        toast.error(res.data.message || "Unable to load Areas");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to load Areas!");
+    }
+  };
+
+  // Fetch users for referral list
+  const getUsers = async () => {
+    try {
+      const res = await getAllUsersAPI(); // Make sure this returns an array of users
+      if (res.success) {
+        setUsers(res.data.users || []);
+      } else {
+        toast.error(res.data?.message || "Failed to load users");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to fetch users");
     }
   };
 
@@ -54,40 +81,72 @@ const EditVolunteer = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit =async (e) => {
+  const handleReferralChange = (value) => {
+    const staticTypes = ["DIRECT", "DESK", "DOOR_TO_DOOR"];
+
+    if (staticTypes.includes(value)) {
+      setForm({
+        ...form,
+        referral: { type: value, referredUser: null, name: value },
+      });
+      setUpdatedFields({
+        ...updatedFields,
+        referral: { type: value },
+      });
+      return;
+    }
+
+    // Update the input value while typing
+    setForm({
+      ...form,
+      referral: { ...form.referral, name: value, type: "USER" },
+    });
+
+    // Match user if exists
+    const user = users.find(
+      (u) => u.name === value || u.email === value || u.contact === value
+    );
+
+    if (user) {
+      setUpdatedFields({
+        ...updatedFields,
+        referral: { type: "USER", referredUser: user._id },
+      });
+    } else {
+      setUpdatedFields({
+        ...updatedFields,
+        referral: { type: "USER" },
+      });
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const data  = await refractrUpdateDonorAPI(updatedFields);
-    console.log(data);
-    
-    try{
+    try {
+      const data = await refractrUpdateUser(updatedFields);
       const res = await updateDonorAPI(id, data);
-      if(res.success){
-        toast.success('Donor updated successfully');
+      if (res.success) {
+        toast.success("Donor updated successfully");
         setIsEditable(false);
-      }else{
-        toast.error(res.data.message || 'Failed to update Donor');
-      }   
-    }
-    catch(err){
-      toast.error('An error occurred while updating donor');
-    } 
-    finally{
+      } else {
+        toast.error(res.data?.message || "Failed to update donor");
+      }
+    } catch (err) {
+      toast.error("An error occurred while updating donor");
+    } finally {
       setLoading(false);
     }
   };
 
+
   return (
-    <MainLayout title={isEditable ? "Edit Donor" : "Donor Details"}  loading={loading}>
+    <MainLayout title={isEditable ? "Edit Donor" : "Donor Details"} loading={loading}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h2> {isEditable ? "Edit Donor" : "Donor Details"} </h2>
-
+          <h2>{isEditable ? "Edit Donor" : "Donor Details"}</h2>
           {!isEditable && (
-            <button
-              className={styles.editBtn}
-              onClick={() => setIsEditable(true)}
-            >
+            <button className={styles.editBtn} onClick={() => setIsEditable(true)}>
               Edit
             </button>
           )}
@@ -100,7 +159,7 @@ const EditVolunteer = () => {
               <input
                 name="name"
                 placeholder="Full Name"
-                value={form.name}
+                value={form.name || ""}
                 onChange={handleChange}
                 required
                 disabled={!isEditable}
@@ -113,7 +172,7 @@ const EditVolunteer = () => {
                 name="email"
                 type="email"
                 placeholder="Email"
-                value={form.email}
+                value={form.email || ""}
                 onChange={handleChange}
                 disabled={!isEditable}
               />
@@ -124,20 +183,19 @@ const EditVolunteer = () => {
               <input
                 name="contact"
                 placeholder="Contact"
-                value={form.contact}
+                value={form.contact || ""}
                 onChange={handleChange}
                 disabled={!isEditable}
               />
             </div>
 
             <div>
-              <label>Date of Birth </label>
+              <label>Date of Birth</label>
               <input
                 name="dob"
                 type="date"
-                value={form.dob}
+                value={form.dob || ""}
                 onChange={handleChange}
-       
                 disabled={!isEditable}
               />
             </div>
@@ -146,19 +204,17 @@ const EditVolunteer = () => {
               <label>Gender *</label>
               <select
                 name="gender"
-                value={form.gender}
+                value={form.gender || ""}
                 onChange={handleChange}
                 required
                 disabled={!isEditable}
               >
                 <option value="">Select Gender</option>
-                {
-                  GenderOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))
-                }
+                {GenderOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -166,9 +222,8 @@ const EditVolunteer = () => {
               <label>Blood Group *</label>
               <select
                 name="bloodGroup"
-                value={form.bloodGroup}
+                value={form.bloodGroup || ""}
                 onChange={handleChange}
-       
                 disabled={!isEditable}
               >
                 <option value="">Select Blood Group</option>
@@ -186,42 +241,98 @@ const EditVolunteer = () => {
                 name="weight"
                 type="number"
                 placeholder="Weight"
-                value={form.weight}
+                value={form.weight || ""}
                 onChange={handleChange}
                 disabled={!isEditable}
               />
             </div>
+
             <div>
-              <label>Last Donateion Date</label>
+              <label>Last Donation Date</label>
               <input
                 name="lastDonationDate"
                 type="date"
-                value={form.lastDonationDate}
+                value={form.lastDonationDate || ""}
                 onChange={handleChange}
-           
                 disabled={!isEditable}
               />
             </div>
-          </div>
+            {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
+              <>
+                <div className={styles.field}>
+                  <label>Area<span className={styles.required}>*</span></label>
+                  <select
+                    name="area"
+                    value={form.area || ""}
+                    onChange={handleChange}
+                    required
+                    disabled={!isEditable}
+                  >
+                    <option value="">Select</option>
+                    {areas.map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
+                <div className={styles.field}>
+                  <label>Referred By<span className={styles.required}>*</span></label>
+                  <input
+                    disabled={!isEditable}
+                    list="userList"
+                    placeholder="Type name / email / contact"
+                    value={form?.referral?.type == "USER" ? form?.referral?.name : form?.referral?.type}
+                    onChange={(e) => handleReferralChange(e.target.value)}
+                  />
+                  <datalist id="userList">
+                    <option value="DIRECT" />
+                    <option value="DESK" />
+                    <option value="DOOR_TO_DOOR" />
+                    {users.map((u) => (
+                      <option key={u._id} value={u.name || u.email || u.contact} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div className={styles.field}>
+                  <label>Active <span className={styles.required}>*</span></label>
+                  <select
+                    name="isActive"
+                    value={form.isActive}
+                    onChange={handleChange}
+                    required
+                    disabled={!isEditable}
+                  >
+                    <option value="true">ACTIVE</option>
+                    <option value="false">INACTIVE</option>
+                  </select>
+                </div>
+              </>
+              }
+
+
+          </div>
 
           <div>
             <label>Address</label>
             <textarea
               name="address"
               placeholder="Address"
-              value={form.address}
+              value={form.address || ""}
               onChange={handleChange}
               rows={3}
               disabled={!isEditable}
             />
           </div>
-           <div>
+
+          <div>
             <label>Work Address</label>
             <textarea
               name="workAddress"
               placeholder="Address"
-              value={form.workAddress}
+              value={form.workAddress || ""}
               onChange={handleChange}
               rows={3}
               disabled={!isEditable}
@@ -248,4 +359,4 @@ const EditVolunteer = () => {
   );
 };
 
-export default EditVolunteer;
+export default EditDonors;

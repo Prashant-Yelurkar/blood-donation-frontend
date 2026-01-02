@@ -6,13 +6,17 @@ import { addDonorAPI, seedDonorAPI } from "@/Actions/Controllers/DonorController
 import { getAllUsersAPI } from "@/Actions/Controllers/UserController";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
+import { getAreaAPI } from "@/Actions/Controllers/areaController";
+import { refracorReferalData } from "@/utils/dataRefractors";
+import { useSelector } from "react-redux";
 
 const AddUser = () => {
   const router = useRouter();
   const { eventID, searchValue } = router.query;
-
+  const { user } = useSelector((state) => state.user);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
+  const [areas, setAreas] = useState([]);
   const [users, setUsers] = useState([]);
   const [referredByName, setReferredByName] = useState("");
   const [file, setFile] = useState(null);
@@ -29,33 +33,69 @@ const AddUser = () => {
     workAddress: "",
     lastDonationDate: "",
     referredBy: "",
+    area: user?.area?.id,
   });
 
-  /* =========================
-     Handle Input Change
-  ========================== */
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  /* =========================
-     Fetch Users (Referral)
-  ========================== */
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await getAllUsersAPI();
-        if (res.success) setUsers(res.data.users || []);
-      } catch (err) {
-        console.error("Failed to load users");
-      }
-    };
-    fetchUsers();
-  }, []);
 
-  /* =========================
-     Handle Excel / CSV Upload
-  ========================== */
+  const getAreas = async () => {
+    try {
+      const res = await getAreaAPI();
+      if (res.success) {
+        setAreas(res.data.areas);
+      }
+      else
+        toast.error(res.data.message || "Unable to load Areas")
+    }
+    catch (error) {
+      toast.error(error.messsage || "Failed to load Areas!")
+    }
+  }
+
+  const getReferals = async () => {
+    try {
+      const res = await getAllUsersAPI({area:form.area});
+      if (res.success) {
+        const data = await refracorReferalData(res.data.users);        
+        setUsers(data);
+      }
+    } catch (err) {      
+      console.error("Failed to load users");
+    }
+  }
+
+  
+
+  useEffect(() => {
+  if (user?.area?.id) {
+    setForm((prev) => ({
+      ...prev,
+      area: user.area.id,
+    }));
+  getReferals();
+  }
+}, [user?.area?.id]);
+
+
+
+useEffect(() => {
+  if (!user?.id) return;
+  getAreas();
+}, [user?.id]);
+
+useEffect(()=>{
+  if(!form.area) return;
+  getReferals();
+}, [form.area])
+
+
+
+
+
   const handleExcelChange = (e) => {
     setFile(e.target.files[0]);
   };
@@ -79,16 +119,14 @@ const AddUser = () => {
       }
     } catch (err) {
       console.log(err);
-      
+
       toast.error("Upload error");
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================
-     Submit Single Donor
-  ========================== */
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -96,13 +134,26 @@ const AddUser = () => {
       toast.error("Please provide Contact or Email");
       return;
     }
-
     setLoading(true);
     try {
       const res = await addDonorAPI(form);
       setStatus(res.status);
       if (res.success) {
         toast.success("Donor added successfully");
+        setForm({
+    name: searchValue || "",
+    email: "",
+    contact: searchValue || "",
+    dob: "",
+    gender: "",
+    bloodGroup: "",
+    weight: "",
+    address: "",
+    workAddress: "",
+    lastDonationDate: "",
+    referredBy: "",
+    area: user?.area?.id,
+  })
         if (eventID) {
           router.push(`/event/${eventID}/register?searchValue=${searchValue}`);
         }
@@ -124,7 +175,9 @@ const AddUser = () => {
         <form className={styles.form} onSubmit={handleSubmit}>
           {/* Name */}
           <div className={styles.field}>
-            <label>Name</label>
+            <label>Name
+              <span className={styles.required}>*</span>
+            </label>
             <input name="name" value={form.name} onChange={handleChange} required />
           </div>
 
@@ -148,7 +201,9 @@ const AddUser = () => {
 
           {/* Gender */}
           <div className={styles.field}>
-            <label>Gender</label>
+            <label>Gender
+              <span className={styles.required}>*</span>
+            </label>
             <select name="gender" value={form.gender} onChange={handleChange} required>
               <option value="">Select</option>
               {GenderOptions.map((g) => (
@@ -184,7 +239,18 @@ const AddUser = () => {
               onChange={handleChange}
             />
           </div>
-
+          <div className={styles.field}>
+            <label>Area
+              <span className={styles.required}>*</span>
+            </label>
+            <select name="area" value={form.area} onChange={handleChange} required
+            disabled={user.role!="SUPER_ADMIN"}>
+              {user.role == "SUPER_ADMIN" && <option value="">Select</option>}
+              {areas.map((g) => (
+                <option key={g.name} value={g._id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Address */}
           <div className={`${styles.field} ${styles.full}`}>
@@ -194,7 +260,7 @@ const AddUser = () => {
               rows="3"
               value={form.address}
               onChange={handleChange}
-            
+
             />
           </div>
           {/* Work Address */}
@@ -210,7 +276,9 @@ const AddUser = () => {
 
           {/* Referred By */}
           <div className={styles.field}>
-            <label>Referred By</label>
+            <label>Referred By
+              <span className={styles.required}>*</span>
+            </label>
             <input
               list="userList"
               placeholder="Type name / email / contact"
@@ -221,7 +289,7 @@ const AddUser = () => {
                 const user = users.find(
                   (u) => u.name === value || u.email === value || u.contact === value
                 );
-                setForm({ ...form, referredBy: user ? user._id : value });
+                setForm({ ...form, referredBy: user ? user.id : value });
               }}
             />
             <datalist id="userList">
@@ -241,10 +309,12 @@ const AddUser = () => {
             <button type="submit">Save Donor</button>
           </div>
         </form>
-         {/* Excel Upload */}
-        
+        {/* Excel Upload */}
+
+        {
+          user.role == "SUPER_ADMIN" &&
           <div className={styles.uploadBox}>
-            <h3>Bulk Register Volunteer</h3>
+            <h3>Bulk Register Donor</h3>
 
             <input
               type="file"
@@ -255,15 +325,20 @@ const AddUser = () => {
             <button
               className={styles.uploadBtn}
               onClick={handleUploadFile}
-            disabled={loading}
+              disabled={loading}
             >
               {loading ? "Uploading..." : "Upload & Register"}
             </button>
 
             <p className={styles.hint}>Accepted formats: CSV, XLSX</p>
           </div>
+        }
 
-          {/* Download Template */}
+
+        {/* Download Template */}
+
+        {
+          user?.role == "ADMIN" &&
           <div className={styles.field}>
             <label>Download Excel Template</label>
             <a
@@ -274,10 +349,12 @@ const AddUser = () => {
               Download Template
             </a>
           </div>
- 
-        
+        }
+
+
+
       </div>
-      
+
     </MainLayout>
   );
 };

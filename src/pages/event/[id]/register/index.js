@@ -7,33 +7,34 @@ import { toast } from "sonner";
 
 import {
     getEventUnrigsterUserAPI,
-    refractorAllDonorsAPI,
     registerUserForEventAPI,
 } from "@/Actions/Controllers/eventController";
-import { TIME_SLOTS } from "@/utils/TimeSlote";
+import { getAutoTimeSlot, TIME_SLOTS } from "@/utils/TimeSlote";
+import { refractorAllUser } from "@/utils/dataRefractors";
+import { useSelector } from "react-redux";
 
 const DonorPage = () => {
     const router = useRouter();
     const { id , searchValue} = router.query;
-
+    const {user} = useSelector((state)=> state.user);
     const hasFetched = useRef(false);
 
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState(null);
-    const [search, setSearch] = useState(router.query?.searchValue|| "");
+    const [search, setSearch] = useState("");
     const [donors, setDonors] = useState([]);
 
     /* 🔹 Modal State */
     const [showModal, setShowModal] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
-    const [selectedSlot, setSelectedSlot] = useState("");
+    const [selectedSlot, setSelectedSlot] = useState(getAutoTimeSlot());
 
 
     /* 🔹 Filter donors */
     const filteredDonors = donors.filter(
         (d) =>
-            d.name.toLowerCase().includes(search.toLowerCase()) ||
-            d.identifier.value.toLowerCase().includes(search.toLowerCase())
+            d.name.toLowerCase().includes(search?.toLowerCase()) ||
+            d.identifier.value.toLowerCase().includes(search?.toLowerCase())
     );
 
     /* 🔹 Fetch donors */
@@ -44,7 +45,11 @@ const DonorPage = () => {
             setStatus(200);
 
             if (res.success) {
-                const formatted = await refractorAllDonorsAPI(res.data.data);
+                const formatted = await refractorAllUser(res.data.data);
+                console.log(res.data.data);
+                
+                console.log(formatted);
+                
                 setDonors(formatted);
             } else {
                 toast.error(res.message || "Failed to fetch donors");
@@ -63,7 +68,6 @@ const DonorPage = () => {
             toast.error("Please select a time slot");
             return;
         }
-
         try {
             setLoading(true);
             const res = await registerUserForEventAPI(id, {
@@ -75,7 +79,7 @@ const DonorPage = () => {
                 toast.success("User registered successfully");
                 setShowModal(false);
                 if(searchValue)
-                    router.push(`/event/${id}/edit`);
+                    router.push(`/event/${id}/update`);
                 getAllDonors(); // refresh list
             } else {
                 toast.error(res.data?.message || "Registration failed");
@@ -105,25 +109,6 @@ const DonorPage = () => {
     }, [router.isReady]);
 
 
-    const getCurrentTimeSlot = () => {
-    const now = new Date();
-    let currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    // // Your camp runs from 8 AM – 8 PM
-    // return TIME_SLOTS.find((slot) => {
-    //     const [start] = slot.split("-");
-
-    //     let [hour, minute] = start.trim().split(":").map(Number);
-
-    //     const slotStartMinutes = hour * 60 + minute;
-    //     const slotEndMinutes = slotStartMinutes + 60;
-
-    //     return (
-    //         currentMinutes >= slotStartMinutes &&
-    //         currentMinutes < slotEndMinutes
-    //     );
-    // }) || "";
-};
     useEffect(()=>{
         if(!router.isReady) return;
         setSearch(searchValue);
@@ -158,6 +143,7 @@ const DonorPage = () => {
                                 <th>Sr</th>
                                 <th>Name</th>
                                 <th>Contact</th>
+                                {user.role =="SUPER_ADMIN" && <th>Area</th>}
                                 <th className={styles.actions}>Action</th>
                             </tr>
                         </thead>
@@ -192,12 +178,12 @@ const DonorPage = () => {
                                                 </a>
                                             )}
                                         </td>
-
+                                        {user.role == "SUPER_ADMIN" && <td>{d.area?.name }, {d.area?.pincode }</td>}
                                         <td className={styles.actions}>
                                             <button
                                                 onClick={() => {
                                                     setSelectedUserId(d.id);
-                                                    setSelectedSlot(getCurrentTimeSlot());
+                                                    setSelectedSlot(getAutoTimeSlot());
                                                     setShowModal(true);
                                                 }}
                                                 className={styles.editBtn}
@@ -221,7 +207,7 @@ const DonorPage = () => {
 
                         <select
                             className={styles.timeInput}
-                            value={selectedSlot}
+                            value={selectedSlot }
                             onChange={(e) => setSelectedSlot(e.target.value)}
                         >
                             <option value="">Select Time Slot</option>

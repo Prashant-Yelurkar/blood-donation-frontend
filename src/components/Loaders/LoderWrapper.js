@@ -3,7 +3,7 @@ import styles from './loader.module.css'
 import { toast } from 'sonner'
 import { removeToken } from '@/Actions/Controllers/TokenController'
 const LoaderWrapper = ({ loading, children , status , router}) => {    
-    if(status ==404 || status ==401 || status ==403)
+    if( status ==401 || status ==403)
         {
             toast.error("Please Login Again")
             removeToken(router)

@@ -16,7 +16,8 @@ import {
 import styles from "./details.module.css";
 import { getEventDetailsById, getEventReport, registerBulk } from "@/Actions/Controllers/eventController";
 import { useRouter } from "next/router";
-import axios from "axios";
+import { useSelector } from "react-redux";
+import { getRoute } from "@/utils/Routes";
 
 
 const COLORS = [
@@ -32,7 +33,7 @@ const COLORS = [
 const EventDetails = () => {
   const router = useRouter();
   const { id } = router.query;
-
+  const { user } = useSelector((state) => state.user)
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +48,7 @@ const EventDetails = () => {
       try {
         const res = await getEventDetailsById(id);
         if (res.data.success) {
-          setEvent(res.data.data);
+          setEvent(res.data.event);
         }
       } catch (error) {
         console.error(error);
@@ -100,6 +101,7 @@ const EventDetails = () => {
     { name: "Registered", value: event.totalRegistered || 0 },
     { name: "Donated", value: event.totalDonorVisited || 0 },
     { name: "Rejected", value: event.totalRejected || 0 },
+    { name: "Cancled", value: event.totalRegisteredNotCome || 0 },
     { name: "Not Came", value: event.totalRegisteredNotCome || 0 },
   ];
 
@@ -109,51 +111,68 @@ const EventDetails = () => {
     { name: "Not Came", value: event.totalRegisteredNotCome || 0 },
   ];
 
-const handleDownload = async () => {
-  try {
-    const res = await getEventReport(id);
+  const handleDownload = async () => {
+    try {
+      const res = await getEventReport(id);
 
-    const url = window.URL.createObjectURL(res.data); // create blob URL
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `Event_${event.name}_Report.xlsx`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url); // clean up
-  } catch (err) {
-    console.error(err);
-    alert("Failed to download report");
+      const url = window.URL.createObjectURL(res.data); // create blob URL
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Event_${event.name}_Report.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url); // clean up
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download report");
+    }
+  };
+
+
+  const handelEdit = () => {
+    router.push(getRoute("EVENT_EDIT", { id: id }));
   }
-};
-
-
-
 
   return (
     <MainLayout title={`Event: ${event.name}`}>
       <div className={styles.container}>
-        {/* BULK UPLOAD */}
-        <div className={styles.uploadBox}>
-          <h3>Bulk Register Donors</h3>
 
-          <input
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={handleFileChange}
-          />
-
-          <button
-            className={styles.uploadBtn}
-            onClick={handleUpload}
-            disabled={uploading}
-          >
-            {uploading ? "Uploading..." : "Upload & Register"}
-          </button>
-
-          <p className={styles.hint}>Accepted formats: CSV, XLSX</p>
+        <div className={styles.row1}>
+          {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
+            <button
+              className={styles.uploadBtn}
+              onClick={handelEdit}
+              disabled={uploading}
+            >
+              Edit
+            </button>
+          }
         </div>
-        
+        {/* BULK UPLOAD */}
+        {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
+          <div className={styles.uploadBox}>
+            <h3>Bulk Register Donors</h3>
+
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={handleFileChange}
+            />
+
+            <button
+              className={styles.uploadBtn}
+              onClick={handleUpload}
+              disabled={uploading}
+            >
+              {uploading ? "Uploading..." : "Upload & Register"}
+            </button>
+
+            <p className={styles.hint}>Accepted formats: CSV, XLSX</p>
+          </div>
+        }
+
+
         {/* SUMMARY */}
         <div className={styles.summary}>
           <h2>{event.name}</h2>
@@ -162,7 +181,9 @@ const handleDownload = async () => {
               <strong>Date:</strong> {event.date}
             </li>
             <li>
-              <strong>Place:</strong> {event.place}
+
+              <strong>{user.role == "SUPER_ADMIN" ? "Aeea :" : "Place :"}</strong> {user.role == "SUPER_ADMIN" ? (event.area.name + " , " + event.area.pincode) : event.place}
+
             </li>
             <li>
               <strong>Total Registered:</strong> {event.totalRegistered}
@@ -248,14 +269,18 @@ const handleDownload = async () => {
           </ResponsiveContainer>
         </div>
       </div>
-
       {/* DOWNLOAD REPORT */}
-      <div className={styles.downloadBox}>
-        <h3>Download Event Report</h3>
-        <button className={styles.uploadBtn} onClick={handleDownload}>
-          Download Excel
-        </button>
-      </div>
+
+      {
+        event.completed &&
+        <div className={styles.downloadBox}>
+          <h3>Download Event Report</h3>
+          <button className={styles.uploadBtn} onClick={handleDownload}>
+            Download Excel
+          </button>
+        </div>
+      }
+
     </MainLayout>
   );
 };

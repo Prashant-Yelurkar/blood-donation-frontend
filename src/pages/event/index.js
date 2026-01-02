@@ -6,17 +6,17 @@ import { getRoute } from "@/utils/Routes";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import DeleteConfirmModal from "@/components/modal/DeleteModal";
-import { getAllEventRefractor, getAllEventsAPI } from "@/Actions/Controllers/eventController";
+import { deleteEventAPI, getAllEventRefractor, getAllEventsAPI } from "@/Actions/Controllers/eventController";
 
 const EventPage = () => {
-
     const [deleteModal, setDeleteModal] = useState({
         open: false,
         name: '',
     })
 
-    const isVerified = useSelector((state) => state.auth.isVerified);
-    const hasFetched = useRef(false);
+    const {user} = useSelector((state)=>state.user);
+    console.log(user);
+    
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState(null);
     const [search, setSearch] = useState("");
@@ -41,7 +41,7 @@ const EventPage = () => {
     const handleDeleteConfirm = async () => {
         setLoading(true)
         try {
-            const res = await deleteDonorAPI(deleteModal.id)
+            const res = await deleteEventAPI(deleteModal.id)
             if (res.success) {
                 setEvents(events.filter((v) => v.id !== deleteModal.id));
                 toast.success("Event deleted Successfully !")
@@ -53,7 +53,7 @@ const EventPage = () => {
         }
         catch(error)
         {
-            toast.error(res.message || 'An error occurred while fetching events');
+            toast.error(error.message || 'An error occurred while fetching events');
         }
         finally{
             setLoading(false)
@@ -77,10 +77,10 @@ const EventPage = () => {
         router.push(getRoute('EVENT_ADD'));
     }
 
-    const getAllDonors = async () => {
+    const getAllEvents = async () => {
         try {
             setLoading(true);
-            const res = await getAllEventsAPI();
+            const res = await getAllEventsAPI({area:user.area?.id});
             setStatus(200)
             if (res.success) {
                 const rf = await getAllEventRefractor(res.data.events);
@@ -103,17 +103,14 @@ const EventPage = () => {
         router.push(getRoute('EVENT_DETAILS') + `/${id}`);
     }
     const handelUpdate = (id) => {
-        router.push(getRoute('EVENT_DETAILS') + `/${id}/edit`);
+        router.push(getRoute('EVENT_DETAILS') + `/${id}/update`);
     }
 
     useEffect(() => {
         if (!router.isReady) return;
-        if (!isVerified) return;
-        if (hasFetched.current) return;
 
-        hasFetched.current = true;
-        getAllDonors();
-    }, [router.isReady, isVerified]);
+        getAllEvents();
+    }, [router.isReady, user]);
 
 
     return (
@@ -128,7 +125,7 @@ const EventPage = () => {
                 {/* Header */}
                 <div className={styles.header}>
                     <h2>Events</h2>
-                    <button onClick={handleAddVolunteer} className={styles.addBtn}>+ Add Event</button>
+                   {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&  <button onClick={handleAddVolunteer} className={styles.addBtn}>+ Add Event</button>}
                 </div>
 
                 {/* Search */}
@@ -147,7 +144,8 @@ const EventPage = () => {
                             <tr>
                                 <th>Sr No</th>
                                 <th>Name</th>
-                                <th>Place</th>
+                                 {user.role =="ADMIN" && <th>Place</th>}
+                                {user.role =="SUPER_ADMIN" && <th>Area</th>}
                                 <th>Date</th>
                                 <th>Accepted</th>
                                 <th>Rejected</th>
@@ -155,6 +153,7 @@ const EventPage = () => {
                                 <th>Total registered</th>
                                 <th>Total Call Made</th>
                                 {/* <th>Contact</th> */}
+    
                                 <th className={styles.actions}>Actions</th>
                             </tr>
                         </thead>
@@ -176,7 +175,8 @@ const EventPage = () => {
                                                 <a href={`mailto:${v.identifier.value}`}>{v.identifier.value}</a>
                                             }
                                         </td> */}
-                                        <td>{v.place}</td>
+                                         {user.role =="ADMIN" && <td>{v.place}</td>}
+                                        {user.role =="SUPER_ADMIN" && <td >{v.area.name}</td>}
                                         <td>{v.date}</td>
                                         <td>{v.totalDonorVisited}</td>
                                         <td>{v.totalRejected}</td>
@@ -184,17 +184,22 @@ const EventPage = () => {
                                         <td>{v.totalRegistered}</td>
                                         <td>{v.totalCallMade}</td>
                                         
-                                        <td className={styles.actions}>
+                                        {
+                                            !v.isCompleted ?
+                                            <td className={styles.actions}>
                                             <button
                                                 onClick={() => handelUpdate(v.id)}
                                                 className={styles.editBtn}>Update</button>
+                                                {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
                                             <button
                                                 className={styles.deleteBtn}
                                                 onClick={() => handleDelete(v.id, v.name)}
                                             >
                                                 Delete
                                             </button>
-                                        </td>
+}
+                                        </td>: <td>Completed</td>
+                                        }
                                     </tr>
                                 ))
                             )}

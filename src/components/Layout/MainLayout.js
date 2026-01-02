@@ -15,6 +15,9 @@ import Spinner from "../Loaders/Spinner";
 import { verifyToken } from "@/Actions/Controllers/verifyController";
 import { setVerified } from "@/redux/slices/authSlice";
 import DashboardLayout from "./DashboardLayout";
+import { setUserProfile } from "@/redux/slices/userSlice";
+import { getMenuItems } from "@/utils/MenuItem";
+import { registerSocketUser, socket } from "@/socket/socket";
 
 const MainLayout = ({
   children,
@@ -26,33 +29,51 @@ const MainLayout = ({
   const dispatch = useDispatch();
 
   const { isVerified } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.user);
+
+  const verifyJWT = async () => {
+    try {
+      const res = await verifyToken(getAuthToken());
+      if (res?.success) {
+        dispatch(setVerified(true));
+        dispatch(setUserProfile(res.data.user))
+      } else {
+        toast.error(res.data?.message || "❌ Session expired. Please log in again.");
+        removeToken(router)
+      }
+    } catch (err) {
+      redirectToLogin(router);
+    }
+  };
 
   useEffect(() => {
     if (!router.isReady) return;
-
     if (!checkTokens()) {
       redirectToLogin(router);
       return;
     }
-
-    const verifyJWT = async () => {
-      try {
-        const res = await verifyToken(getAuthToken());
-        if (res?.success) {
-          dispatch(setVerified(true));
-        } else {
-            toast.error(res?.message || "❌ Session expired. Please log in again.");
-          removeToken(router)
-        }
-      } catch (err) {
-        redirectToLogin(router);
-      }
-    };
-
     if (!isVerified) {
       verifyJWT();
+      return;
     }
-  }, [router.isReady]);
+    if (!user?.role) return;
+    const path = router.pathname;
+    const menu = getMenuItems(user.role);
+    const isAllowed = menu.some((item) =>
+      item.activeLink.includes(path)
+    );
+
+    if (!isAllowed) {
+      toast.error("⛔ Unauthorized access");
+      router.replace("/dashboard");
+    }
+  }, [router.isReady, isVerified, router.pathname]);
+
+
+
+
+
+
 
 
   if (!isVerified) {
@@ -67,6 +88,7 @@ const MainLayout = ({
     );
   }
 
+
   return (
     <>
       <Head>
@@ -75,9 +97,9 @@ const MainLayout = ({
 
       <main className={styles.main}>
         <LoaderWrapper loading={loading} router={router} status={status}>
-          <DashboardLayout title={title}>
-          {children}
-          <Toaster />
+          <DashboardLayout title={title} role={user.role}>
+            {children}
+            <Toaster />
           </DashboardLayout>
         </LoaderWrapper>
       </main>

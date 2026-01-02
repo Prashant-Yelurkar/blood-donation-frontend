@@ -2,8 +2,9 @@ import { convertToLocalDateString } from "@/utils/DateConverter";
 import { getFiles, myrouter, myUpload } from "../AxiosInitializer";
 
 
-const getAllEventsAPI = async (data) => await myrouter.get('/event')
+const getAllEventsAPI = async (params) => await myrouter.get('/event' ,{params})
 const addEventAPI = async (data) => await myrouter.post('/event', data);
+const deleteEventAPI = async (id) => await myrouter.delete(`/event/${id}`);
 
 const getEventDetailsById = async(id)=> await myrouter.get(`/event/${id}`);
 
@@ -15,8 +16,11 @@ const getEventUnrigsterUserAPI = async(id)=> await myrouter.get(`/event/${id}/us
 const registerUserForEventAPI = async(id, data) =>await myrouter.post(`/event/${id}/registerUser`, data)
 const updateUserStatus = async(id,userID, data) =>await myrouter.post(`/event/${id}/userStatus/${userID}`, data)
 
-
+const updateEventAPI = async(id,data) =>await myrouter.post(`/event/${id}`, data);
 const registerBulk = async(id,data)=> await myUpload.post(`/event/${id}/register-bulk`, data);
+
+const getEventPermission = async (id) => await myUpload.get(`/event/${id}/permissions`)
+
 const getEventReport = async (id) => {
   return await myrouter.get(`/event/${id}/report`, {
     responseType: "blob",
@@ -24,6 +28,24 @@ const getEventReport = async (id) => {
 };
 
 
+
+const getEventDataRefractor = async (e)=>{
+    return {
+        id: e.id,
+        name: e.name,
+        place:e.place,
+        date:  convertToLocalDateString(e.date),
+        totalDonorVisited:e.totalDonorVisited,
+        totalRejected:e.totalRejected,
+        totalRegisteredNotCome:e.totalRegisteredNotCome,
+        totalRegistered:e.totalRegistered,
+        totalCallMade:e.totalCallMade,
+        area:e.area,
+        startTime:e.startTime,
+        endTime:e.endTime,
+        volunteers:e.volunteers
+    }
+}
 const getAllEventRefractor = async (data) => {
     return data.map((e) => (
         {
@@ -36,28 +58,26 @@ const getAllEventRefractor = async (data) => {
             totalRegisteredNotCome:e.totalRegisteredNotCome,
             totalRegistered:e.totalRegistered,
             totalCallMade:e.totalCallMade,
+            area:e.area,
+            volunteers:e.volunteers,
+            isCompleted:e.isCompleted
         }
     ))
 }
 
 
-const refractorAllDonorsAPI = async (data) => {
-    return data.map((d) => ({
-        id: d.id,
-        name: d.profile?.name || 'N/A',
-        identifier: {
-            type: d.contact ? 'contact' : 'email',
-            value: d.contact ? d.contact : d.email || 'N/A',
-        },
-    }));
-}
+
 
 export {
+    deleteEventAPI,
     getEventReport,
     registerBulk,
     updateUserStatus,
-    getEventDetailsById,getEventUserAPI,getEventUnrigsterUserAPI,refractorAllDonorsAPI,registerUserForEventAPI,
+    getEventDetailsById,getEventUserAPI,getEventUnrigsterUserAPI,registerUserForEventAPI,
     getAllEventsAPI, getAllEventRefractor,
     addEventAPI,
+    updateEventAPI,
+    getEventDataRefractor,
+    getEventPermission
 
 }
