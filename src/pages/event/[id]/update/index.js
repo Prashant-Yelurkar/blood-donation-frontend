@@ -139,8 +139,8 @@ const EditEvent = () => {
             if (res.success)
                 dispatch(setEventPermission({
                     id: id,
-                    canCall: res.data.permissions.canCall,
-                    canAcceptAttendance: res.data.permissions.canAcceptAttendance,
+                    canCall: res.data.permissions?.canCall || false,
+                    canAcceptAttendance: res.data.permissions?.canAcceptAttendance ||false,
                 })
                 )
             else
