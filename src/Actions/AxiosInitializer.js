@@ -12,7 +12,7 @@ export const myrouter = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000, 
+  timeout: 100000, 
 });
 
 myrouter.interceptors.request.use(
@@ -50,7 +50,7 @@ myrouter.interceptors.response.use(
 
 export const myUpload = axios.create({
   baseURL,
-  timeout: 40000,
+  timeout: 400000,
 });
 
 myUpload.interceptors.request.use(
