@@ -104,13 +104,13 @@ const EditDonors = () => {
 
     // Match user if exists
     const user = users.find(
-      (u) => u.name === value || u.email === value || u.contact === value
+      (u) => u?.profile?.name === value || u.email === value || u.contact === value
     );
 
     if (user) {
       setUpdatedFields({
         ...updatedFields,
-        referral: { type: "USER", referredUser: user._id },
+        referral: { type: "USER", referredUser: user?.profile?._id },
       });
     } else {
       setUpdatedFields({
@@ -291,7 +291,7 @@ const EditDonors = () => {
                     <option value="DESK" />
                     <option value="DOOR_TO_DOOR" />
                     {users.map((u) => (
-                      <option key={u._id} value={u.name || u.email || u.contact} />
+                       <option key={u._id} value={u.profile?.name? u.profile?.name : u.contact} />
                     ))}
                   </datalist>
                 </div>
