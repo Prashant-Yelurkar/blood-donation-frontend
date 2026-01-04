@@ -378,6 +378,7 @@ useEffect(() => {
                                 <th>Sr</th>
                                 <th>Name</th>
                                 <th>Contact</th>
+                                <th>Bolld Group</th>
                                 <th>Refer By</th>
                                 <th>Calls</th>
                                 <th>Call Time</th>
@@ -412,6 +413,7 @@ useEffect(() => {
                                                 {u.contact}
                                             </span>
                                         </td>
+                                        <td>{u.bloodGroup}</td>
                                         <td>{u.referredBy}</td>
                                         <td>{u.totalCallMade || 0}</td>
                                         <td>{u.lastCallTime ? convertUTCToIST_24Time(u.lastCallTime) : "N/A"}</td>
