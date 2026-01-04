@@ -297,7 +297,7 @@ useEffect(()=>{
               <option value="DESK" />
               <option value="DOOR_TO_DOOR" />
               {users.map((u) => (
-                <option key={u._id} value={u.profile?.name? u.profile?.name : u.contact} />
+                <option key={u._id} value={u?.name ? u?.name : u.contact} />
               ))}
             </datalist>
           </div>
