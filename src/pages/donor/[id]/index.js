@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { BloodGroupOptions, GenderOptions } from "@/utils/Options";
 import { getDonorDetailsAPI, refractrUpdateDonorAPI, updateDonorAPI } from "@/Actions/Controllers/DonorController";
 import { getAreaAPI } from "@/Actions/Controllers/areaController";
-import { refractorUserDetails, refractrUpdateUser } from "@/utils/dataRefractors";
+import { refracorReferalData, refractorUserDetails, refractrUpdateUser } from "@/utils/dataRefractors";
 import { getAllUsersAPI } from "@/Actions/Controllers/UserController"; // Make sure you have an API to fetch users
 import { useSelector } from "react-redux";
 
@@ -66,12 +66,14 @@ const EditDonors = () => {
   const getUsers = async () => {
     try {
       const res = await getAllUsersAPI(); // Make sure this returns an array of users
-      if (res.success) {
-        setUsers(res.data.users || []);
+      if (res.success) {        
+        const fr = await refracorReferalData(res.data.users);     
+        setUsers(fr);
       } else {
         toast.error(res.data?.message || "Failed to load users");
       }
     } catch (error) {
+      log
       toast.error(error.message || "Failed to fetch users");
     }
   };
@@ -83,7 +85,8 @@ const EditDonors = () => {
 
   const handleReferralChange = (value) => {
     const staticTypes = ["DIRECT", "DESK", "DOOR_TO_DOOR"];
-
+    console.log(value);
+    
     if (staticTypes.includes(value)) {
       setForm({
         ...form,
@@ -102,15 +105,17 @@ const EditDonors = () => {
       referral: { ...form.referral, name: value, type: "USER" },
     });
 
+    
+
     // Match user if exists
     const user = users.find(
-      (u) => u?.profile?.name === value || u.email === value || u.contact === value
+      (u) => u?.name === value || u.email === value || u.contact === value
     );
 
     if (user) {
       setUpdatedFields({
         ...updatedFields,
-        referral: { type: "USER", referredUser: user?.profile?._id },
+        referral: { type: "USER", referredUser: user?.id },
       });
     } else {
       setUpdatedFields({
@@ -291,7 +296,7 @@ const EditDonors = () => {
                     <option value="DESK" />
                     <option value="DOOR_TO_DOOR" />
                     {users.map((u) => (
-                       <option key={u._id} value={u.profile?.name? u.profile?.name : u.contact} />
+                       <option key={u.id} value={u?.name ? u?.name : u.contact} />
                     ))}
                   </datalist>
                 </div>
