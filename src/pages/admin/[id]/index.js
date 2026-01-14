@@ -16,7 +16,7 @@ import { useSelector } from "react-redux";
 const EditAdmin = () => {
   const router = useRouter();
   const { id, edit } = router.query;
-  const {user} = useSelector((state)=> state.user);
+  const { user } = useSelector((state) => state.user);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
   const [isEditable, setIsEditable] = useState(false);
@@ -32,7 +32,7 @@ const EditAdmin = () => {
     area: "",
     address: "",
     workAddress: "",
-    isActive:"false"
+    isActive: "false"
   });
 
   const [updatedFields, setUpdatedFields] = useState({});
@@ -45,14 +45,18 @@ const EditAdmin = () => {
 
   useEffect(() => {
     if (!router.isReady) return;
-    if(!user.role) return;
+    if (!user.role) return;
     if (!id) return;
 
-   
+
     getAdminDetails(id);
-    if(user.role =="SUPER_ADMIN")
-      fetchAreas();
   }, [id, router.isReady, user.role]);
+
+    useEffect(()=>{
+      if(!isEditable) return;
+    if (user.role == "SUPER_ADMIN")
+      fetchAreas();
+    }, [isEditable])
 
   const fetchAreas = async () => {
     try {
@@ -73,7 +77,8 @@ const EditAdmin = () => {
       const res = await getAdminByIdAPI(id);
       if (res.success) {
         const fr = await refractorUserDetails(res.data.admin);
-        setForm(fr);        
+        setForm(fr);
+        setAreas([fr.area])
       } else {
         toast.error(res.message || "Failed to fetch admin details");
       }
@@ -93,7 +98,7 @@ const EditAdmin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);    
+    setLoading(true);
     const data = await refractrUpdateUser(updatedFields);
     try {
       const res = await updateAdminAPI(id, data);
@@ -235,46 +240,50 @@ const EditAdmin = () => {
               />
             </div>
 
-{
-  user.role =="SUPER_ADMIN" &&
-  <>
-  
-              <div>
-              <label>
-                Area
-                <span className={styles.required}>*</span>
-              </label>
-              <select
-                name="area"
-                value={form.area}
-                onChange={handleChange}
-                required
-                disabled={!isEditable}
-              >
-                {areas.map((g) => (
-                  <option key={g.name} value={g._id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {
+              user.role == "SUPER_ADMIN" &&
+              <>
+
+                <div>
+                  <label>
+                    Area
+                    <span className={styles.required}>*</span>
+                  </label>
+                  <select
+                    name="area"
+                    value={form.area?._id || ""}
+                    onChange={(e)=> {
+                      const update = areas.find((a)=> a._id == e.target.value);
+                      setForm({...form , area:update});
+                      setUpdatedFields( {...updatedFields , area:update})
+                    }}
+                    required
+                    disabled={!isEditable}
+                  >
+                    {areas.map((g) => (
+                      <option key={g.name} value={g._id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
 
-            <div>
-              <label>Is Active *</label>
-              <select
-                name="isActive"
-                value={form.isActive}
-                onChange={handleChange}
-                required
-                disabled={!isEditable}
-              >
-                <option value="false">False</option>
-                <option value="true">True</option>
-              </select>
-            </div>
-  </>
-}
+                <div>
+                  <label>Is Active *</label>
+                  <select
+                    name="isActive"
+                    value={form.isActive}
+                    onChange={handleChange}
+                    required
+                    disabled={!isEditable}
+                  >
+                    <option value="false">False</option>
+                    <option value="true">True</option>
+                  </select>
+                </div>
+              </>
+            }
 
 
           </div>

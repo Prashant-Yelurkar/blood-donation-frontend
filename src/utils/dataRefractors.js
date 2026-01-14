@@ -26,7 +26,7 @@ const refractorUserDetails = async (user) => {
         workAddress: user.profile?.workAddress || '',
         weight:user.profile?.weight || '',
         lastDonationDate: user.profile?.lastDonationDate && convertToLocalDateString(user.profile?.lastDonationDate),
-        area:user.area?._id ,
+        area:user.area,
         isActive:user.isActive,
         referral:user?.profile?.referral,
     });

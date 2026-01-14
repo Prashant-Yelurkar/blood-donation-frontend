@@ -26,8 +26,14 @@ const EditVolunteer = () => {
     if (!router.isReady) return;
     if (!id) return;
     getVolunteerDetails(id);
-    fetchAreas();
   }, [id, router.isReady]);
+
+
+  useEffect(() => {
+    if (!isEditable) return;
+    fetchAreas();
+
+  }, [isEditable])
 
   const getVolunteerDetails = async (id) => {
     setLoading(true);
@@ -35,9 +41,8 @@ const EditVolunteer = () => {
       const res = await getAllVolunteersDetailsAPI(id);
       if (res.success) {
         const fr = await refractorUserDetails(res.data.volunteer);
-        console.log(fr);
-
         setForm(fr);
+        setAreas([fr.area])
       } else {
 
         toast.error(res.message || "Failed to fetch volunteer details");
@@ -220,7 +225,7 @@ const EditVolunteer = () => {
             </div>
 
             {
-             ( user.role == "SUPER_ADMIN" || user.role =="ADMIN") &&
+              (user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
               <>
                 <div>
                   <label>
@@ -229,8 +234,12 @@ const EditVolunteer = () => {
                   </label>
                   <select
                     name="area"
-                    value={form.area}
-                    onChange={handleChange}
+                    value={form.area?._id || ""}
+                    onChange={(e) => {
+                      const update = areas.find((a) => a._id == e.target.value);
+                      setForm({ ...form, area: update });
+                      setUpdatedFields({ ...updatedFields, area: update })
+                    }}
                     required
                     disabled={!isEditable}
                   >

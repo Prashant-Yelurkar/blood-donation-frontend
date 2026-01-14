@@ -25,18 +25,22 @@ const EditDonors = () => {
   useEffect(() => {
     if (!router.isReady) return;
     if (!id) return;
-    getAreas();
-    getUsers(); // fetch users for referral list
     getDonorDetails(id);
   }, [id, router.isReady]);
 
-  // Fetch donor details
+  useEffect(()=>{
+    if(!isEditable) return;
+    getAreas();
+    getUsers(); 
+  }, [isEditable])
+  
   const getDonorDetails = async (id) => {
     setLoading(true);
     try {
       const res = await getDonorDetailsAPI(id);
       if (res.success) {
         const fr = await refractorUserDetails(res.data.donor);
+        setAreas([fr.area])
         setForm(fr);
       } else {
         toast.error(res.message || "Failed to fetch donor details");
@@ -48,7 +52,6 @@ const EditDonors = () => {
     }
   };
 
-  // Fetch areas
   const getAreas = async () => {
     try {
       const res = await getAreaAPI();
@@ -61,8 +64,6 @@ const EditDonors = () => {
       toast.error(error.message || "Failed to load Areas!");
     }
   };
-
-  // Fetch users for referral list
   const getUsers = async () => {
     try {
       const res = await getAllUsersAPI(); // Make sure this returns an array of users
@@ -268,8 +269,12 @@ const EditDonors = () => {
                   <label>Area<span className={styles.required}>*</span></label>
                   <select
                     name="area"
-                    value={form.area || ""}
-                    onChange={handleChange}
+                    value={form.area?._id || ""}
+                    onChange={(e)=> {
+                      const update = areas.find((a)=> a._id == e.target.value);
+                      setForm({...form , area:update});
+                      setUpdatedFields( {...updatedFields , area:update})
+                    }}
                     required
                     disabled={!isEditable}
                   >
