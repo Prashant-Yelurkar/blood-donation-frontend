@@ -44,6 +44,7 @@ const AddVolunteer = () => {
     try {
       const res = await getAreaDetailsAPI(id);
       if (res.success) {
+        setForm({...form, area: id})
         setAreas([...areas, res.data.area]);
       }
       else

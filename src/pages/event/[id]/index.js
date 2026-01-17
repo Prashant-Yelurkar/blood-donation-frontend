@@ -150,7 +150,7 @@ const EventDetails = () => {
           }
         </div>
         {/* BULK UPLOAD */}
-        {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
+        {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") && !event.completed &&
           <div className={styles.uploadBox}>
             <h3>Bulk Register Donors</h3>
 

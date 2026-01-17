@@ -1,5 +1,5 @@
 import MainLayout from "@/components/Layout/MainLayout";
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import styles from "./details.module.css";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
@@ -30,8 +30,9 @@ const EditDonors = () => {
 
   useEffect(()=>{
     if(!isEditable) return;
-    getAreas();
     getUsers(); 
+    if(user.role == "SUPER_ADMIN" )
+      getAreas();
   }, [isEditable])
   
   const getDonorDetails = async (id) => {
@@ -263,7 +264,7 @@ const EditDonors = () => {
                 disabled={!isEditable}
               />
             </div>
-            {(user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
+            {(user.role == "SUPER_ADMIN") &&
               <>
                 <div className={styles.field}>
                   <label>Area<span className={styles.required}>*</span></label>
@@ -286,7 +287,11 @@ const EditDonors = () => {
                     ))}
                   </select>
                 </div>
-
+              </>
+              }
+              {
+                (user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
+                <>
                 <div className={styles.field}>
                   <label>Referred By<span className={styles.required}>*</span></label>
                   <input
@@ -319,7 +324,7 @@ const EditDonors = () => {
                     <option value="false">INACTIVE</option>
                   </select>
                 </div>
-              </>
+                </>
               }
 
 

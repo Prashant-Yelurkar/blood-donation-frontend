@@ -223,10 +223,8 @@ const EditVolunteer = () => {
                 disabled={!isEditable}
               />
             </div>
-
-            {
-              (user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
-              <>
+                        {
+              (user.role == "SUPER_ADMIN" ) &&
                 <div>
                   <label>
                     Area
@@ -252,6 +250,11 @@ const EditVolunteer = () => {
                 </div>
 
 
+     
+            }
+
+            {
+              (user.role == "SUPER_ADMIN" || user.role == "ADMIN") &&
                 <div>
                   <label>Is Active *</label>
                   <select
@@ -261,12 +264,10 @@ const EditVolunteer = () => {
                     required
                     disabled={!isEditable}
                   >
-                    <option value="false">False</option>
-                    <option value="true">True</option>
+                    <option value="false">Active</option>
+                    <option value="true">Inactive</option>
                   </select>
                 </div>
-
-              </>
             }
 
           </div>
